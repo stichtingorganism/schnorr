@@ -14,7 +14,7 @@
 
 
 //! A Rust implementation of Schnorr key generation, signing,
-//! verification, multi-signatures and key aggregation.
+//! and verification.
 
 
 use core::default::Default;
@@ -501,6 +501,14 @@ impl PublicKey {
             Ok(())
         } else {
             Err(SignatureError(InternalError::VerifyError))
+        }
+    }
+
+    /// Helper Method to Get our public key as a curve point.
+    pub fn get_curve_point(&self) -> Result<RistrettoPoint, SignatureError> { 
+        match self.0.decompress() {
+            Some(x) => return Ok(x),
+            None    => return Err(SignatureError(InternalError::PointDecompressionError)),
         }
     }
 
