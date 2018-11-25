@@ -13,7 +13,7 @@ documentation = "https://docs.rs/schnorr"
 [dependencies]
 curve25519-dalek = { version =  "1.0.0-pre.0", features = ["serde"] }
 serde = "1.0"
-rand = "0.5"
+rand = "0.6"
 failure = "0.1"
 clear_on_drop = "0.2"
 blake2 = "0.8.0"
