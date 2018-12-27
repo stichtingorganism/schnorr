@@ -40,7 +40,7 @@ extern crate blake2;
 #[macro_use]
 extern crate std;
 
-pub mod errors;
+mod errors;
 mod schnorr;
 
 // Export everything public in schnorr.
