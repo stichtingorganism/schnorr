@@ -33,7 +33,7 @@ use core::fmt::Display;
 /// Internal errors.  Most application-level developers will likely not
 /// need to pay any attention to these.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub (crate) enum InternalError {
+pub enum InternalError {
     PointDecompressionError,
     ScalarFormatError,
     /// An error in the length of bytes handed to a constructor.
@@ -78,15 +78,15 @@ impl ::failure::Fail for InternalError {}
 ///
 /// * Failure of a signature to satisfy the verification equation.
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-pub struct SchnorrError(pub (crate) InternalError);
+pub struct SError(pub InternalError);
 
-impl Display for SchnorrError {
+impl Display for SError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl ::failure::Fail for SchnorrError {
+impl ::failure::Fail for SError {
     fn cause(&self) -> Option<&::failure::Fail> {
         Some(&self.0)
     }

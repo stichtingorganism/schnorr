@@ -31,8 +31,8 @@ use curve25519_dalek::digest::Digest;
 use rand::CryptoRng;
 use rand::Rng;
 use clear_on_drop::clear::Clear;
-use errors::SchnorrError;
-use errors::InternalError;
+use crate::errors::SError as SchnorrError;
+use crate::errors::InternalError;
 
 
 /// The length of a curve25519 Schnorr `Signature`, in bytes.
@@ -194,7 +194,7 @@ impl SecretKey {
     /// #
     /// use schnorr::SecretKey;
     /// use schnorr::SECRET_KEY_LENGTH;
-    /// use schnorr::SchnorrError;
+    /// use schnorr::errors::SError as SchnorrError;
     ///
     /// # fn doctest() -> Result<SecretKey, SchnorrError> {
     /// let secret_key_bytes: [u8; SECRET_KEY_LENGTH] = [
@@ -400,7 +400,7 @@ impl PublicKey {
     /// #
     /// use schnorr::PublicKey;
     /// use schnorr::PUBLIC_KEY_LENGTH;
-    /// use schnorr::SchnorrError;
+    /// use schnorr::SError as SchnorrError;
     ///
     /// # fn doctest() -> Result<PublicKey, SchnorrError> {
     /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
