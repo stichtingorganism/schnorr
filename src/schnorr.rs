@@ -31,7 +31,7 @@ use curve25519_dalek::digest::Digest;
 use rand::CryptoRng;
 use rand::Rng;
 use clear_on_drop::clear::Clear;
-use errors::SignatureError;
+use errors::SchnorrError;
 use errors::InternalError;
 
 
@@ -106,9 +106,9 @@ impl Signature {
 
     /// Construct a `Signature` from a slice of bytes.
     #[inline]
-    pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SignatureError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SchnorrError> {
         if bytes.len() != SIGNATURE_LENGTH {
-            return Err(SignatureError(InternalError::BytesLengthError{
+            return Err(SchnorrError(InternalError::BytesLengthError{
                 name: "Signature", length: SIGNATURE_LENGTH }));
         }
         let mut lower: [u8; 32] = [0u8; 32];
@@ -118,7 +118,7 @@ impl Signature {
         upper.copy_from_slice(&bytes[32..]);
 
         if upper[31] & 224 != 0 {
-            return Err(SignatureError(InternalError::ScalarFormatError));
+            return Err(SchnorrError(InternalError::ScalarFormatError));
         }
 
         Ok(Signature{ R: CompressedRistretto(lower), s: Scalar::from_bits(upper) })
@@ -194,9 +194,9 @@ impl SecretKey {
     /// #
     /// use schnorr::SecretKey;
     /// use schnorr::SECRET_KEY_LENGTH;
-    /// use schnorr::SignatureError;
+    /// use schnorr::SchnorrError;
     ///
-    /// # fn doctest() -> Result<SecretKey, SignatureError> {
+    /// # fn doctest() -> Result<SecretKey, SchnorrError> {
     /// let secret_key_bytes: [u8; SECRET_KEY_LENGTH] = [
     ///    157, 097, 177, 157, 239, 253, 090, 096,
     ///    186, 132, 074, 244, 146, 236, 044, 196,
@@ -217,11 +217,11 @@ impl SecretKey {
     /// # Returns
     ///
     /// A `Result` whose okay value is an Schnorr `SecretKey` or whose error value
-    /// is an `SignatureError` wrapping the internal error that occurred.
+    /// is an `SchnorrError` wrapping the internal error that occurred.
     #[inline]
-    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SignatureError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SchnorrError> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SignatureError(InternalError::BytesLengthError{
+            return Err(SchnorrError(InternalError::BytesLengthError{
                 name: "SecretKey", length: SECRET_KEY_LENGTH }));
         }
         let mut bits: [u8; 32] = [0u8; 32];
@@ -400,9 +400,9 @@ impl PublicKey {
     /// #
     /// use schnorr::PublicKey;
     /// use schnorr::PUBLIC_KEY_LENGTH;
-    /// use schnorr::SignatureError;
+    /// use schnorr::SchnorrError;
     ///
-    /// # fn doctest() -> Result<PublicKey, SignatureError> {
+    /// # fn doctest() -> Result<PublicKey, SchnorrError> {
     /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
     ///    215,  90, 152,   1, 130, 177,  10, 183, 213,  75, 254, 211, 201, 100,   7,  58,
     ///     14, 225, 114, 243, 218, 166,  35,  37, 175,   2,  26, 104, 247,   7,   81, 26];
@@ -420,11 +420,11 @@ impl PublicKey {
     /// # Returns
     ///
     /// A `Result` whose okay value is an Schnorr `PublicKey` or whose error value
-    /// is an `SignatureError` describing the error that occurred.
+    /// is an `SchnorrError` describing the error that occurred.
     #[inline]
-    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SignatureError> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SchnorrError> {
         if bytes.len() != PUBLIC_KEY_LENGTH {
-            return Err(SignatureError(InternalError::BytesLengthError{
+            return Err(SchnorrError(InternalError::BytesLengthError{
                 name: "PublicKey", length: PUBLIC_KEY_LENGTH }));
         }
         let mut bits: [u8; 32] = [0u8; 32];
@@ -463,7 +463,7 @@ impl PublicKey {
     ///
     /// Returns `Ok(())` if the signature is valid, and `Err` otherwise.
     #[allow(non_snake_case)]
-    pub fn verify<D>(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError>
+    pub fn verify<D>(&self, message: &[u8], signature: &Signature) -> Result<(), SchnorrError>
             where D: Digest<OutputSize = U64> + Default
     {
         //If g^s == RX^c then we have valid signature.
@@ -474,13 +474,13 @@ impl PublicKey {
         //Get our public key as a curve point.
         let X: RistrettoPoint = match self.0.decompress() {
             Some(x) => x,
-            None    => return Err(SignatureError(InternalError::PointDecompressionError)),
+            None    => return Err(SchnorrError(InternalError::PointDecompressionError)),
         };
 
         //Get our signature as a curve point.
         let R: RistrettoPoint = match signature.R.decompress() {
             Some(r) => r,
-            None    => return Err(SignatureError(InternalError::PointDecompressionError)),
+            None    => return Err(SchnorrError(InternalError::PointDecompressionError)),
         };
 
         //c = H(public_key, R, message)
@@ -500,15 +500,15 @@ impl PublicKey {
         if left == right {
             Ok(())
         } else {
-            Err(SignatureError(InternalError::VerifyError))
+            Err(SchnorrError(InternalError::VerifyError))
         }
     }
 
     /// Helper Method to Get our public key as a curve point.
-    pub fn get_curve_point(&self) -> Result<RistrettoPoint, SignatureError> { 
+    pub fn get_curve_point(&self) -> Result<RistrettoPoint, SchnorrError> { 
         match self.0.decompress() {
             Some(x) => return Ok(x),
-            None    => return Err(SignatureError(InternalError::PointDecompressionError)),
+            None    => return Err(SchnorrError(InternalError::PointDecompressionError)),
         }
     }
 
@@ -588,10 +588,10 @@ impl Keypair {
     /// # Returns
     ///
     /// A `Result` whose okay value is an Schnorr `Keypair` or whose error value
-    /// is an `SignatureError` describing the error that occurred.
-    pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SignatureError> {
+    /// is an `SchnorrError` describing the error that occurred.
+    pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
         if bytes.len() != KEYPAIR_LENGTH {
-            return Err(SignatureError(InternalError::BytesLengthError{
+            return Err(SchnorrError(InternalError::BytesLengthError{
                 name: "Keypair", length: KEYPAIR_LENGTH}));
         }
         let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
@@ -646,7 +646,7 @@ impl Keypair {
 
 
     /// Verify a signature on a message with this keypair's public key.
-    pub fn verify<D>(&self, message: &[u8], signature: &Signature) -> Result<(), SignatureError>
+    pub fn verify<D>(&self, message: &[u8], signature: &Signature) -> Result<(), SchnorrError>
             where D: Digest<OutputSize = U64> + Default {
         self.public.verify::<D>(message, signature)
     }
