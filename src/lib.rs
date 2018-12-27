@@ -45,7 +45,7 @@ mod schnorr;
 
 // Export everything public in schnorr.
 pub use schnorr::*;
-pub use errors::*;
+// pub use errors::*;
 
 
 
