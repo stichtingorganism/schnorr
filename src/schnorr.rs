@@ -194,7 +194,7 @@ impl SecretKey {
     /// #
     /// use schnorr::SecretKey;
     /// use schnorr::SECRET_KEY_LENGTH;
-    /// use schnorr::errors::SError as SchnorrError;
+    /// use schnorr::SchnorrError;
     ///
     /// # fn doctest() -> Result<SecretKey, SchnorrError> {
     /// let secret_key_bytes: [u8; SECRET_KEY_LENGTH] = [
@@ -400,7 +400,7 @@ impl PublicKey {
     /// #
     /// use schnorr::PublicKey;
     /// use schnorr::PUBLIC_KEY_LENGTH;
-    /// use schnorr::SError as SchnorrError;
+    /// use schnorr::SchnorrError;
     ///
     /// # fn doctest() -> Result<PublicKey, SchnorrError> {
     /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
