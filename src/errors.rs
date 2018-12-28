@@ -78,15 +78,15 @@ impl ::failure::Fail for InternalError {}
 ///
 /// * Failure of a signature to satisfy the verification equation.
 #[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-pub struct SError(pub InternalError);
+pub struct SchnorrError(pub InternalError);
 
-impl Display for SError {
+impl Display for SchnorrError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl ::failure::Fail for SError {
+impl ::failure::Fail for SchnorrError {
     fn cause(&self) -> Option<&::failure::Fail> {
         Some(&self.0)
     }

@@ -31,7 +31,7 @@ use curve25519_dalek::digest::Digest;
 use rand::CryptoRng;
 use rand::Rng;
 use clear_on_drop::clear::Clear;
-use crate::errors::SError as SchnorrError;
+use crate::errors::SchnorrError;
 use crate::errors::InternalError;
 
 
@@ -433,6 +433,7 @@ impl PublicKey {
         Ok(PublicKey(CompressedRistretto(bits)))
     }
 
+
     /// Derive this public key from its corresponding `SecretKey`.
     #[allow(unused_assignments)]
     pub fn from_secret(secret_key: &SecretKey) -> PublicKey {
@@ -696,6 +697,7 @@ mod test {
     use rand::ChaChaRng;
     use rand::SeedableRng;
     use blake2::Blake2b;
+   
 
     #[test]
     fn sign_verify() {  // TestSignVerify
