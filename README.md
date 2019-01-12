@@ -5,6 +5,14 @@ A Rust implementation of Schnorr key generation, signing, verification, multi-si
 We use a cyclic group G of prime order p, a generator of g of G, and a hash function H.
 In our case we are using the [Ristretto Group](https://ristretto.group) as our curve.
 
+The implementations aim to be [_bip-schnorr_](https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki) compliant.
+
+**Disclaimers**: 
+
+(1) This code should not be used for production at the moment.
+
+(2) This code is not secure against side-channel attacks
+
 
 # Documentation
 
