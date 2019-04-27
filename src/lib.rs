@@ -1,4 +1,4 @@
-// Copyright 2018 Stichting Organism
+// Copyright 2019 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,15 @@
 // Schnorr via ristretto
 //
 
+// Modified From the hard work off:
+// Authors:
+// - Isis Agora Lovecruft <isis@patternsinthevoid.net>
+// - Jeff Burdges <jeff@web3.foundation>
+// - The Tari Project Authors
+// - Cathie Yun <cathieyun@gmail.com> 
+// - Tess Rinearson <tess.rinearson@gmail.com> 
+// - Oleg Andreev <oleganza@gmail.com>
+
 
 //Modeled from
 //https://github.com/dalek-cryptography/ed25519-dalek/blob/master/src/ed25519.rs
@@ -26,44 +35,51 @@
 //https://medium.com/cryptoadvance/how-schnorr-signatures-may-improve-bitcoin-91655bcb4744
 
 #![no_std]
-#![allow(unused_features)]
+//#![allow(unused_features)]
 //#![deny(missing_docs)] // refuse to compile if documentation is missing
 
-extern crate rand;
-extern crate curve25519_dalek;
-extern crate serde;
-extern crate failure;
-extern crate clear_on_drop;
-extern crate blake2;
+
 
 #[cfg(any(feature = "std", test))]
 #[macro_use]
 extern crate std;
 
+
+#[macro_use] mod ser;
 pub mod errors;
-mod schnorr;
+pub mod tools;
+pub mod keys;
+pub mod signature;
 
-// Export everything public in schnorr.
-pub use schnorr::*;
-pub use errors::SchnorrError;
-
-
+// pub mod musig;
 
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use curve25519_dalek::ristretto::RistrettoPoint;
-//     use curve25519_dalek::traits::Identity;
 
-//     #[test]
-//     fn test_keys() {
-//         //generate sk
-//         let sk = SecretKey(Scalar::zero());
-//         //generate our pk
-//         let pk = PublicKey::from_secret(&sk);
-        
-//         assert_eq!(pk.0, RistrettoPoint::identity().compress());
-//     }
+//taken from futures lib:)
+pub mod prelude {
+    //! A "prelude" for crates using the `schnorr` crate.
+    //!
+    //! This prelude is similar to the standard library's prelude in that you'll
+    //! almost always want to import its entire contents, but unlike the
+    //! standard library's prelude you'll have to do so manually:
+    //!
+    //! ```
+    //! use schnorr::prelude::*;
+    //! ```
+    //!
+    //! The prelude may grow over time as additional items see ubiquitous use.
 
-// }
+    // Export everything public in schnorr.
+    pub use crate::signature::{
+        Signature,
+        SIGNATURE_LENGTH,
+        verify_batch,
+        sign_multi,
+        verify_multi
+    };
+
+    pub use crate::errors::SchnorrError;
+    pub use crate::keys::*;
+    pub use crate::tools::{ SigningContext };
+
+}

@@ -1,4 +1,4 @@
-// Copyright 2018 Stichting Organism
+// Copyright 2019 Stichting Organism
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,26 +26,27 @@ extern crate criterion;
 extern crate schnorr;
 extern crate rand;
 extern crate blake2;
+extern crate merlin;
 
-use criterion::Criterion;
 
 mod schnorr_benches {
-    use super::*;
-    use schnorr::Keypair;
-    //use schnorr::PublicKey;
-    use schnorr::Signature;
-    // use schnorr::verify_batch;
-    use rand::thread_rng;
-    use rand::ThreadRng;
-    use blake2::Blake2b;
+    use criterion::Criterion;
+
+    use schnorr::prelude::*;
+
+    use merlin::Transcript;
+    // use blake2::Blake2b;
+    use rand::prelude::{thread_rng, ThreadRng}; 
 
     fn sign(c: &mut Criterion) {
         let mut csprng: ThreadRng = thread_rng();
         let keypair: Keypair = Keypair::generate(&mut csprng);
         let msg: &[u8] = b"";
 
+        let ctx = SigningContext::new(b"this signature does this thing");
+
         c.bench_function("Schnorr signing", move |b| {
-            b.iter(| | keypair.sign::<Blake2b, _>(&mut csprng, msg))
+            b.iter(| | keypair.sign(ctx.bytes(msg)))
         });
     }
 
@@ -54,31 +55,38 @@ mod schnorr_benches {
         let mut csprng: ThreadRng = thread_rng();
         let keypair: Keypair = Keypair::generate(&mut csprng);
         let msg: &[u8] = b"";
-        let sig: Signature = keypair.sign::<Blake2b, _>(&mut csprng, msg);
+        let ctx = SigningContext::new(b"this signature does this thing");
+        let sig: Signature = keypair.sign(ctx.bytes(msg));
         
         c.bench_function("Schnorr signature verification", move |b| {
-                         b.iter(| | keypair.verify::<Blake2b>(msg, &sig))
+                         b.iter(| | keypair.verify(ctx.bytes(msg), &sig))
         });
     }
 
-    // fn verify_batch_signatures(c: &mut Criterion) {
-    //     static BATCH_SIZES: [usize; 8] = [4, 8, 16, 32, 64, 96, 128, 256];
 
-    //     c.bench_function_over_inputs(
-    //         "Ed25519 batch signature verification",
-    //         |b, &&size| {
-    //             let mut csprng: ThreadRng = thread_rng();
-    //             let keypairs: Vec<Keypair> = (0..size).map(|_| Keypair::generate::<Sha512, _>(&mut csprng)).collect();
-    //             let msg: &[u8] = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    //             let messages: Vec<&[u8]> = (0..size).map(|_| msg).collect();
-    //             let signatures:  Vec<Signature> = keypairs.iter().map(|key| key.sign::<Sha512>(&msg)).collect();
-    //             let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
+    fn verify_batch_signatures(c: &mut Criterion) {
+        static BATCH_SIZES: [usize; 8] = [4, 8, 16, 32, 64, 96, 128, 256];
 
-    //             b.iter(|| verify_batch::<Sha512>(&messages[..], &signatures[..], &public_keys[..]));
-    //         },
-    //         &BATCH_SIZES,
-    //     );
-    // }
+        c.bench_function_over_inputs(
+            "Schnorr batch signature verification",
+            |b, &&size| {
+                let mut csprng: ThreadRng = thread_rng();
+                let keypairs: Vec<Keypair> = (0..size).map(|_| Keypair::generate(&mut csprng)).collect();
+                let msg: &[u8] = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+				let ctx = SigningContext::new(b"this signature does this thing");
+                let signatures:  Vec<Signature> = keypairs.iter().map(|key| key.sign(ctx.bytes(msg))).collect();
+                let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
+
+                b.iter(|| {
+					let transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(size).collect();
+					verify_batch(&transcripts[..], &signatures[..], &public_keys[..])
+				});
+            },
+            &BATCH_SIZES,
+        );
+    }
+
+    
 
     fn key_generation(c: &mut Criterion) {
         let mut csprng: ThreadRng = thread_rng();
@@ -94,7 +102,7 @@ mod schnorr_benches {
         targets =
             sign,
             verify,
-            //verify_batch_signatures,
+            verify_batch_signatures,
             key_generation,
     }
 }
