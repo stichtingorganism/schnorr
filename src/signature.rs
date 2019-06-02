@@ -26,7 +26,7 @@ use crate::errors::{SchnorrError, InternalError, MuSigError};
 use crate::keys::{PublicKey, SecretKey, Keypair};
 use crate::tools::TranscriptProtocol;
 use crate::tools::SigningContext;
-use merlin::Transcript;
+use mohan::merlin::Transcript;
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -362,12 +362,12 @@ impl Keypair {
 /// ```
 /// extern crate schnorr;
 /// extern crate rand;
-/// extern crate merlin;
+/// extern crate mohan;
 ///
 /// use schnorr::prelude::*;
 /// use rand::thread_rng;
 /// use rand::rngs::ThreadRng;
-/// use merlin::Transcript;
+/// use mohan::merlin::Transcript;
 ///
 /// # fn main() {
 
@@ -608,7 +608,7 @@ pub fn verify_multi(
 
 #[cfg(test)]
 mod test {
-    use merlin::Transcript;
+    use mohan::merlin::Transcript;
     use rand::prelude::*; // ThreadRng,thread_rng
     use rand_chacha::ChaChaRng;
     use blake2::digest::Input;

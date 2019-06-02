@@ -19,8 +19,8 @@ failure = "0.1"
 clear_on_drop = "0.2"
 blake2 = "0.8.0"
 subtle = { version = "2.0.0", features = ["nightly"] }
-merlin = { version = "1.0.1" }
 
+mohan = "0.0.1"
 
 [dev-dependencies]
 criterion = "0.2"

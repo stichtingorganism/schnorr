@@ -24,7 +24,7 @@
 
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use merlin::Transcript;
+use mohan::merlin::Transcript;
 use core::fmt::Debug;
 use crate::errors::{SchnorrError, InternalError};
 use curve25519_dalek::digest::{FixedOutput, ExtendableOutput, XofReader};

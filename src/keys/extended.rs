@@ -21,7 +21,7 @@ use clear_on_drop::clear::Clear;
 use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
 use rand::{Rng, CryptoRng};
 use crate::errors::{SchnorrError, InternalError};
-use merlin::Transcript;
+use mohan::merlin::Transcript;
 use crate::tools::{TranscriptProtocol};
 use curve25519_dalek::ristretto::{CompressedRistretto};
 use curve25519_dalek::constants;
