@@ -1,8 +1,8 @@
 [package]
 name = "schnorr"
-version = "0.0.4"
+version = "0.0.5"
 description = "Schnorr Signatures"
-authors = ["hello@organism.ai"]
+authors = ["hello@organism.org"]
 license = "Apache-2.0"
 repository = "https://github.com/stichtingorganism/schnorr"
 categories = ["cryptography", "no-std"]
