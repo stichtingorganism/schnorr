@@ -92,7 +92,7 @@ impl Keypair {
     /// is an `SchnorrError` describing the error that occurred.
     pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
         if bytes.len() != KEYPAIR_LENGTH {
-            return Err(SchnorrError(InternalError::BytesLengthError{
+            return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name: "Keypair", 
                 description: Keypair::DESCRIPTION, 
                 length: KEYPAIR_LENGTH
@@ -137,7 +137,7 @@ impl Keypair {
         let sk: SecretKey = SecretKey::generate(csprng);
         let pk: PublicKey = PublicKey::from_secret(&sk);
 
-        Keypair{ public: pk, secret: sk }
+        Keypair { public: pk, secret: sk }
     }
 
     /// Derive the `PublicKey` corresponding to this `SecretKey`.

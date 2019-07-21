@@ -15,107 +15,74 @@
 
 //! Errors which may occur when parsing keys and/or signatures to or from wire formats.
 
-// rustc seems to think the typenames in match statements (e.g. in
-// Display) should be snake cased, for some reason.
-#![allow(non_snake_case)]
 
-use core::fmt;
-use core::fmt::Display;
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash)]
+use std::fmt;
+use failure::{Backtrace, Context, Fail};
+
+/// An alias for results returned by functions of this crate
+pub type SchnorrResult<T> = ::std::result::Result<T, SchnorrError>;
+
+#[derive(Eq, PartialEq, Debug, Fail, Clone)]
 pub enum MuSigError {
     /// The number of public nonces must match the number of public keys in the joint key
+    #[fail(display = "The number of public nonces must match the number of public keys in the joint key")]
     MismatchedNonces,
     /// The number of partial signatures must match the number of public keys in the joint key
+    #[fail(display = "The number of partial signatures must match the number of public keys in the joint key")]
     MismatchedSignatures,
     /// The aggregate signature did not verify
+    #[fail(display = "The aggregate signature did not verify")]
     InvalidAggregateSignature,
     /// A partial signature did not validate
+    #[fail(display = "A partial signature did not validate at index: {}", _0)]
     InvalidPartialSignature(usize),
     /// The participant list must be sorted before making this call
+    #[fail(display = "The participant list must be sorted before making this call")]
     NotSorted,
     /// The participant key is not in the list
+    #[fail(display = "The participant key is not in the list")]
     ParticipantNotFound,
     /// An attempt was made to perform an invalid MuSig state transition
+    #[fail(display = "An attempt was made to perform an invalid MuSig state transition")]
     InvalidStateTransition,
     /// An attempt was made to add a duplicate public key to a MuSig signature
+    #[fail(display = "An attempt was made to add a duplicate public key to a MuSig signature")]
     DuplicatePubKey,
     /// There are too many parties in the MuSig signature
+    #[fail(display = "There are too many parties in the MuSig signature")]
     TooManyParticipants,
     /// There are too few parties in the MuSig signature
+    #[fail(display = "There are too few parties in the MuSig signature")]
     NotEnoughParticipants,
     /// A nonce hash is missing
+    #[fail(display = "A nonce hash is missing")]
     MissingNonce,
     /// The message to be signed can only be set once
+    #[fail(display = "The message to be signed can only be set once")]
     MessageAlreadySet,
     /// The message to be signed MUST be set before the final nonce is added to the MuSig ceremony
+    #[fail(display = "The message to be signed MUST be set before the final nonce is added to the MuSig ceremony")]
     MissingMessage,
     /// The message to sign is invalid. have you hashed it?
+    #[fail(display = "The message to sign is invalid. have you hashed it?")]
     InvalidMessage,
     /// MuSig requires a hash function with a 32 byte digest
+    #[fail(display = "MuSig requires a hash function with a 32 byte digest")]
     IncompatibleHashFunction,
 }
 
 
-impl Display for MuSigError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            MuSigError::MismatchedNonces
-                => write!(f, "The number of public nonces must match the number of public keys in the joint key"),
-
-            MuSigError::MismatchedSignatures
-                => write!(f, "The number of partial signatures must match the number of public keys in the joint key"),
-
-            MuSigError::InvalidAggregateSignature
-                => write!(f, "The aggregate signature did not verify"),
-
-            MuSigError::InvalidPartialSignature(_)
-                => write!(f, " A partial signature did not validate"),
-            
-            MuSigError::NotSorted
-                => write!(f, "The participant list must be sorted before making this call"),
-
-            MuSigError::ParticipantNotFound
-                => write!(f, "The participant key is not in the list"),
-
-             MuSigError::InvalidStateTransition
-                => write!(f, "An attempt was made to perform an invalid MuSig state transition"),
-
-             MuSigError::DuplicatePubKey
-                => write!(f, "An attempt was made to add a duplicate public key to a MuSig signature"),
-
-             MuSigError::TooManyParticipants
-                => write!(f, "There are too many parties in the MuSig signature"),
-
-             MuSigError::NotEnoughParticipants
-                => write!(f, "There are too few parties in the MuSig signature"),
-
-             MuSigError::MissingNonce
-                => write!(f, "A nonce hash is missing"),
-            
-             MuSigError::MessageAlreadySet
-                => write!(f, "The message to be signed can only be set once"),
-
-             MuSigError::MissingMessage
-                => write!(f, "The message to be signed MUST be set before the final nonce is added to the MuSig ceremony"),
-
-             MuSigError::InvalidMessage
-                => write!(f, " The message to sign is invalid. have you hashed it?"),
-
-            MuSigError::IncompatibleHashFunction
-                => write!(f, " MuSig requires a hash function with a 32 byte digest"),
-        }
-    }
-}
-
 /// Internal errors.  Most application-level developers will likely not
 /// need to pay any attention to these.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub(crate) enum InternalError {
+#[derive(Eq, PartialEq, Debug, Fail, Clone)]
+pub enum InternalError {
     /// Invalid point provided.
+    #[fail(display = "Cannot decompress Edwards point")]
     PointDecompressionError,
 
     /// Invalid scalar provided.
+    #[fail(display = "Cannot use scalar with high-bit set")]
     ScalarFormatError,
 
     /// An error in the length of bytes handed to a constructor.
@@ -123,6 +90,10 @@ pub(crate) enum InternalError {
     /// To use this, pass a string specifying the `name` of the type which is
     /// returning the error, and the `length` in bytes which its constructor
     /// expects.
+    #[fail(
+        display = "{} must be {} bytes in length",
+        name, length
+    )]
     BytesLengthError { 
         /// Identifies the type returning the error
         name: &'static str,  
@@ -133,12 +104,18 @@ pub(crate) enum InternalError {
     },
 
     /// The verification equation wasn't satisfied
+    #[fail(display = "Verification equation was not satisfied")]
     VerifyError,
 
     /// This error occurs when a function is called with bad arguments.
+    #[fail(display = "Function is called with bad arguments")]
     BadArguments,
 
-    /// Musig
+    /// Musig  
+    #[fail(
+        display = "Absent {} violated multi-signature protocol",
+        _0
+    )]
     MuSig {
         kind: MuSigError 
     }
@@ -146,32 +123,7 @@ pub(crate) enum InternalError {
 
 }
 
-impl Display for InternalError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            InternalError::PointDecompressionError
-                => write!(f, "Cannot decompress Edwards point"),
 
-            InternalError::ScalarFormatError
-                => write!(f, "Cannot use scalar with high-bit set"),
-
-            InternalError::BytesLengthError{ name, length, ..}
-                => write!(f, "{} must be {} bytes in length", name, length),
-
-            InternalError::VerifyError
-                => write!(f, "Verification equation was not satisfied"),
-            
-            InternalError::BadArguments
-                => write!(f, "Function is called with bad arguments"),
-
-            InternalError::MuSig{ kind }
-                => write!(f, "Absent {} violated multi-signature protocol", kind),
-
-        }
-    }
-}
-
-impl ::failure::Fail for InternalError {}
 
 /// Errors which may occur while processing signatures and keypairs.
 ///
@@ -187,18 +139,55 @@ impl ::failure::Fail for InternalError {}
 ///   only be constructed from 255-bit integers.)
 ///
 /// * Failure of a signature to satisfy the verification equation.
-#[derive(Clone, Copy, Eq, PartialEq, Hash, Debug)]
-pub struct SchnorrError(pub(crate) InternalError);
+#[derive(Debug)]
+pub struct SchnorrError {
+    inner: Context<InternalError>,
+}
 
-impl Display for SchnorrError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
+impl SchnorrError {
+    /// Get the kind of the error
+    pub fn kind(&self) -> &InternalError {
+        self.inner.get_context()
     }
 }
 
-impl ::failure::Fail for SchnorrError {
-    fn cause(&self) -> Option<&::failure::Fail> {
-        Some(&self.0)
+
+impl Clone for SchnorrError {
+    fn clone(&self) -> Self {
+        SchnorrError {
+            inner: Context::new(self.inner.get_context().clone()),
+        }
+    }
+}
+
+
+impl fmt::Display for SchnorrError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.inner, f)
+    }
+}
+
+impl Fail for SchnorrError {
+    fn cause(&self) -> Option<&dyn Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
+    }
+}
+
+impl From<InternalError> for SchnorrError {
+    fn from(kind: InternalError) -> SchnorrError {
+        SchnorrError {
+            inner: Context::new(kind),
+        }
+    }
+}
+
+impl From<Context<InternalError>> for SchnorrError {
+    fn from(inner: Context<InternalError>) -> SchnorrError {
+        SchnorrError { inner }
     }
 }
 
@@ -210,12 +199,12 @@ impl ::failure::Fail for SchnorrError {
 pub(crate) fn serde_error_from_signature_error<E>(err: SchnorrError) -> E
 where E: ::serde::de::Error
 {
-    match err {
-        SchnorrError(InternalError::PointDecompressionError)
+    match *err.kind() {
+        InternalError::PointDecompressionError
             => E::custom("Ristretto point decompression failed"),
-        SchnorrError(InternalError::ScalarFormatError)
+        InternalError::ScalarFormatError
             => E::custom("improper scalar has high-bit set"), 
-        SchnorrError(InternalError::BytesLengthError{ description, length, .. })
+        InternalError::BytesLengthError{ description, length, .. }
             => E::invalid_length(length, &description),
         _ => panic!("Non-serialisation error encountered by serde!"),
     }

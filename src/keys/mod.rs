@@ -42,8 +42,7 @@ pub use extended::{
     XPublicKey
 };
 
-// mod multi;
-// pub use multi::MultiKey;
+
 
 
 #[cfg(test)]

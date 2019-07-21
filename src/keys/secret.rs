@@ -17,12 +17,11 @@
 
 
 use core::fmt::{Debug};
-use subtle::{Choice,ConstantTimeEq};
-use clear_on_drop::clear::Clear;
+use subtle::{Choice, ConstantTimeEq};
 use rand::{Rng, CryptoRng};
 use curve25519_dalek::scalar::Scalar;
 use crate::errors::{SchnorrError, InternalError};
-
+use clear_on_drop::clear::Clear;
 
 /// The length of a curve25519 Schnorr `SecretKey`, in bytes.
 pub const SECRET_KEY_LENGTH: usize = 32;
@@ -30,8 +29,7 @@ pub const SECRET_KEY_LENGTH: usize = 32;
 
 
 /// An Schnorr secret key.
-#[repr(C)]
-#[derive(Default, Clone)] // we derive Default in order to use the clear() method in Drop
+#[derive(Default, Clone)]
 pub struct SecretKey(pub (crate) Scalar);
 
 
@@ -59,6 +57,7 @@ impl Drop for SecretKey {
         self.0.clear();
     }
 }
+
 
 
 impl SecretKey {
@@ -111,7 +110,7 @@ impl SecretKey {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SchnorrError> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SchnorrError(InternalError::BytesLengthError{
+            return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name: "SecretKey",  
                 description: SecretKey::DESCRIPTION, 
                 length: SECRET_KEY_LENGTH 

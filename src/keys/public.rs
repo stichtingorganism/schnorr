@@ -31,7 +31,6 @@ pub const PUBLIC_KEY_LENGTH: usize = 32;
 
 /// An Schnorr public key.
 #[derive(Copy, Clone, Default)]
-#[repr(C)]
 pub struct PublicKey(pub (crate) RistrettoBoth);
 
 impl Debug for PublicKey {

@@ -34,25 +34,13 @@
 //https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki
 //https://medium.com/cryptoadvance/how-schnorr-signatures-may-improve-bitcoin-91655bcb4744
 
-#![no_std]
-//#![allow(unused_features)]
-//#![deny(missing_docs)] // refuse to compile if documentation is missing
-
-
-
-#[cfg(any(feature = "std", test))]
-#[macro_use]
-extern crate std;
-
 
 #[macro_use] mod ser;
 pub mod errors;
 pub mod tools;
 pub mod keys;
 pub mod signature;
-
-// pub mod musig;
-
+pub mod ecdh;
 
 
 //taken from futures lib:)
@@ -81,5 +69,8 @@ pub mod prelude {
     pub use crate::errors::SchnorrError;
     pub use crate::keys::*;
     pub use crate::tools::{ SigningContext };
-
+    pub use crate::ecdh::{
+        diffie_hellman, 
+        SharedSecret
+    };
 }

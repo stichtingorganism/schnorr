@@ -16,15 +16,15 @@
 
 use core::fmt::Debug;
 use curve25519_dalek::scalar::Scalar;
-use subtle::{Choice,ConstantTimeEq};
-use clear_on_drop::clear::Clear;
+use subtle::{Choice, ConstantTimeEq};
 use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
 use rand::{Rng, CryptoRng};
 use crate::errors::{SchnorrError, InternalError};
-use mohan::merlin::Transcript;
+use merlin::Transcript;
 use crate::tools::{TranscriptProtocol};
 use curve25519_dalek::ristretto::{CompressedRistretto};
 use curve25519_dalek::constants;
+
 
 /// The length of the "Derivation key" portion of a Extended Schnorr public key, in bytes.
 const EXTENDED_PUBLIC_KEY_NONCE_LENGTH: usize = 32;
@@ -37,7 +37,7 @@ pub const EXTENDED_SECRET_KEY_LENGTH: usize = SECRET_KEY_LENGTH + EXTENDED_SECRE
 
 
 /// An Extended seceret key for use with Ristretto Schnorr signatures.
-#[derive(Default)] // we derive Default in order to use the clear() method in Drop
+#[derive(Clone, Default)]
 pub struct XSecretKey {
     /// Actual Secret key represented as a scalar.
     pub (crate) key: SecretKey,
@@ -46,6 +46,12 @@ pub struct XSecretKey {
     pub (crate) xpub: XPublicKey
 }
 
+// impl Drop for XSecretKey {
+//     fn drop(&mut self) {
+//         self.key.clear();
+//     }
+// }
+
 
 impl Debug for XSecretKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -53,14 +59,6 @@ impl Debug for XSecretKey {
     }
 }
 
-/// Overwrite secret key material with null bytes when it goes out of scope.
-impl Drop for XSecretKey {
-    fn drop(&mut self) {
-        self.key.clear();
-        self.xpub.derivation_key.clear();
-        self.xpub.clear();
-    }
-}
 
 impl Eq for XSecretKey {}
 impl PartialEq for XSecretKey {
@@ -178,7 +176,7 @@ impl XSecretKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<XSecretKey, SchnorrError> {
 
         if bytes.len() != EXTENDED_SECRET_KEY_LENGTH {
-             return Err(SchnorrError(InternalError::BytesLengthError{
+             return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name: "XSecretKey",  
                 description: XSecretKey::DESCRIPTION, 
                 length: EXTENDED_SECRET_KEY_LENGTH 
@@ -237,7 +235,7 @@ impl XSecretKey {
         let mut t = Transcript::new(b"Schnorr.derivation");
 
         //We derive the nonce has the second half of the 512bit hash of secret
-        t.commit_bytes(b"secret_key", secret.as_bytes());
+        t.append_message(b"secret_key", secret.as_bytes());
    
         let key = t.challenge_scalar(b"Schnorr.derivation.key");
 
@@ -294,7 +292,6 @@ pub struct XPublicKey {
     /// We require this be random and secret or else key compromise attacks will ensue.
     /// Any modificaiton here may dirupt some non-public key derivation techniques.
     pub (crate) derivation_key: [u8; 32],
-
 }
 
 
@@ -353,7 +350,7 @@ impl XPublicKey {
         let mut t = Transcript::new(b"Keytree.derivation");
         //3. Commit xpub to the transcript:
         t.commit_point(b"pt", self.key.as_compressed());
-        t.commit_bytes(b"dk", &self.derivation_key);
+        t.append_message(b"dk", &self.derivation_key);
        
         t
     }
@@ -429,8 +426,8 @@ mod tests {
             "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         );
 
-        let child_prv = root_prv.derive_intermediate_key(|prf| prf.commit_u64(b"index", 1));
-        let child_pub = root_pub.derive_intermediate_key(|prf| prf.commit_u64(b"index", 1));
+        let child_prv = root_prv.derive_intermediate_key(|prf| prf.append_u64(b"index", 1));
+        let child_pub = root_pub.derive_intermediate_key(|prf| prf.append_u64(b"index", 1));
         assert_eq!(
             to_hex_64(child_prv.to_bytes()),
             "ba9bead5df738767ca184900a4a09ce8afe9f7696e8d3ac1fd99f607a785bf005237586d5b496618a49a876e9a7e077b1715f8635b41b48edcaf2934ebe62683"
@@ -445,8 +442,8 @@ mod tests {
         );
 
         // Note: the leaf keys must be domain-separated from the intermediate keys, even if using the same PRF customization
-        let child2_prv = child_prv.derive_intermediate_key(|prf| prf.commit_u64(b"index", 1));
-        let child2_pub = child_pub.derive_intermediate_key(|prf| prf.commit_u64(b"index", 1));
+        let child2_prv = child_prv.derive_intermediate_key(|prf| prf.append_u64(b"index", 1));
+        let child2_pub = child_pub.derive_intermediate_key(|prf| prf.append_u64(b"index", 1));
         assert_eq!(
             to_hex_64(child2_prv.to_bytes()),
             "d4719a691dc4e97b27abfc50764d0369a197b3d03b049f0654d4872dd5f01f02f334cb814294776de8551a4e6382c14d05ad2eb6d6391e87069a3fbe2e6ecf77"
@@ -460,8 +457,8 @@ mod tests {
             "1210a34624dfddb312da90ad5e2d3d4649d7eb50d44dad00972d1e1f422a4f29f334cb814294776de8551a4e6382c14d05ad2eb6d6391e87069a3fbe2e6ecf77"
         );
 
-        let leaf_prv = child_prv.derive_key(|prf| prf.commit_u64(b"index", 1));
-        let leaf_pub = child_pub.derive_key(|prf| prf.commit_u64(b"index", 1));
+        let leaf_prv = child_prv.derive_key(|prf| prf.append_u64(b"index", 1));
+        let leaf_pub = child_pub.derive_key(|prf| prf.append_u64(b"index", 1));
         assert_eq!(
             hex::encode(leaf_prv.to_bytes()),
             "a7a8928dfeae1479a7bf908bfa929b714a62fe334b68e4557105414113ffca04"
@@ -527,7 +524,7 @@ mod tests {
         let seed = [0u8; 32];
         let mut rng = ChaChaRng::from_seed(seed);
         let xprv = XSecretKey::generate(&mut rng).derive_intermediate_key(|t| {
-            t.commit_u64(b"account_id", 34);
+            t.append_u64(b"account_id", 34);
         });
 
         assert_eq!(
@@ -549,7 +546,7 @@ mod tests {
         let seed = [0u8; 32];
         let mut rng = ChaChaRng::from_seed(seed);
         let xprv = XSecretKey::generate(&mut rng).derive_key(|t| {
-            t.commit_u64(b"invoice_id", 10034);
+            t.append_u64(b"invoice_id", 10034);
         });
 
         assert_eq!(
@@ -640,7 +637,7 @@ mod tests {
         let mut rng = ChaChaRng::from_seed(seed);
         let xprv = XSecretKey::generate(&mut rng);
         let xpub = xprv.to_public().derive_intermediate_key(|t| {
-            t.commit_u64(b"account_id", 34);
+            t.append_u64(b"account_id", 34);
         });
 
         assert_eq!(
@@ -661,7 +658,7 @@ mod tests {
         let mut rng = ChaChaRng::from_seed(seed);
         let xprv = XSecretKey::generate(&mut rng);
         let xpub = xprv.to_public().derive_key(|t| {
-            t.commit_u64(b"invoice_id", 10034);
+            t.append_u64(b"invoice_id", 10034);
         });
 
         assert_eq!(

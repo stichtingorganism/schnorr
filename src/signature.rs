@@ -25,8 +25,8 @@ use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT
 use crate::errors::{SchnorrError, InternalError, MuSigError};
 use crate::keys::{PublicKey, SecretKey, Keypair};
 use crate::tools::TranscriptProtocol;
-use crate::tools::SigningContext;
-use mohan::merlin::Transcript;
+// use crate::tools::SigningContext;
+use merlin::Transcript;
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -97,7 +97,7 @@ impl Signature {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SchnorrError> {
         if bytes.len() != SIGNATURE_LENGTH {
-            return Err(SchnorrError(InternalError::BytesLengthError{
+            return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name: "Signature", 
                 description: Signature::DESCRIPTION,
                 length: SIGNATURE_LENGTH 
@@ -110,7 +110,7 @@ impl Signature {
         upper.copy_from_slice(&bytes[32..]);
 
         if upper[31] & 224 != 0 {
-            return Err(SchnorrError(InternalError::ScalarFormatError));
+            return Err(SchnorrError::from(InternalError::ScalarFormatError));
         }
 
         Ok(Signature{ R: CompressedRistretto(lower), s: Scalar::from_bits(upper) })
@@ -152,7 +152,7 @@ impl SecretKey {
         //randomize transcrip and commit private key
         let mut rng = transcript
             .build_rng()
-            .commit_witness_bytes(b"secret_key", self.as_bytes()) 
+            .rekey_with_witness_bytes(b"secret_key", self.as_bytes()) 
             .finalize(&mut rand::thread_rng());
 
         // Generate ephemeral keypair (r, R). r is a random nonce.
@@ -175,7 +175,8 @@ impl SecretKey {
 
     /// Sign a message with this `SecretKey`.
     pub fn sign_simple(&self, ctx: &'static [u8], msg: &[u8], public_key: &PublicKey) -> Signature {
-        let t = SigningContext::new(ctx).bytes(msg);
+        let mut t = Transcript::new(ctx);
+        t.append_message(b"sign-bytes", msg);
         self.sign(t, public_key)
     }
 
@@ -215,7 +216,8 @@ impl PublicKey {
 
     /// Verify a signature by this public key on a message.
     pub fn verify_simple(&self, ctx: &'static [u8], msg: &[u8], signature: &Signature) -> bool {
-        let t = SigningContext::new(ctx).bytes(msg);
+        let mut t = Transcript::new(ctx);
+        t.append_message(b"sign-bytes", msg);
         self.verify(t, signature)
     }
 }
@@ -362,12 +364,12 @@ impl Keypair {
 /// ```
 /// extern crate schnorr;
 /// extern crate rand;
-/// extern crate mohan;
+/// extern crate merlin;
 ///
 /// use schnorr::prelude::*;
 /// use rand::thread_rng;
 /// use rand::rngs::ThreadRng;
-/// use mohan::merlin::Transcript;
+/// use merlin::Transcript;
 ///
 /// # fn main() {
 
@@ -397,7 +399,7 @@ pub fn verify_batch(
      
     // Check transcripts length below
     if !signatures.len() == public_keys.len() && !transcripts.len() == public_keys.len() {
-            return Err(SchnorrError(InternalError::BytesLengthError{
+            return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name: "Verify Batch",  
                 description: ASSERT_MESSAGE, 
                 length: 0 
@@ -452,12 +454,12 @@ pub fn verify_batch(
     // `0 == (-s * G) + (1 * R) + (c * X)`
     // G is the base point.
     let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError(InternalError::VerifyError))?;
+            .ok_or(SchnorrError::from(InternalError::VerifyError))?;
 
     // We need not return SigenatureError::PointDecompressionError because
     // the decompression failures occur for R represent invalid signatures.
     if !check.is_identity() {
-        return Err(SchnorrError(InternalError::VerifyError));
+        return Err(SchnorrError::from(InternalError::VerifyError));
     }
     
     Ok(())
@@ -473,14 +475,14 @@ pub fn sign_multi(
 
     if messages.len() != keys.len() {
             return Err(
-                SchnorrError(
-                    InternalError::MuSig{ kind: MuSigError::TooManyParticipants }
+                SchnorrError::from(
+                    InternalError::MuSig { kind: MuSigError::TooManyParticipants }
                 )
             );
     }
     
     if keys.len() == 0 {
-        return Err(SchnorrError(InternalError::BadArguments));
+        return Err(SchnorrError::from(InternalError::BadArguments));
     }
 
     //set the domain
@@ -491,7 +493,7 @@ pub fn sign_multi(
         .build_rng()
         // Use one key that has enough entropy to seed the RNG.
         // We can call unwrap because we know that the privkeys length is > 0
-        .commit_witness_bytes(b"secret_key", keys[0].as_bytes())
+        .rekey_with_witness_bytes(b"secret_key", keys[0].as_bytes())
         .finalize(&mut rand::thread_rng());
 
     
@@ -503,11 +505,11 @@ pub fn sign_multi(
 
 
     // Commit the context, and commit the nonce sum with label "R"
-    transcript.commit_u64(b"Multimessage_len", messages.len() as u64);
+    transcript.append_u64(b"Multimessage_len", messages.len() as u64);
 
     for (key, msg) in messages {
             transcript.commit_point(b"public_key", key.as_compressed());
-            transcript.commit_bytes(b"message", msg.as_ref());
+            transcript.append_message(b"message", msg.as_ref());
     }
 
     //commit to our nonce
@@ -518,9 +520,9 @@ pub fn sign_multi(
     for i in 0..keys.len() {
         let mut transcript_i = transcript.clone();
         //This prevents later steps from being able to get the same challenges that come from the forked transcript.
-        transcript_i.commit_bytes(b"dom-sep", b"multi_message_boundary");
+        transcript_i.append_message(b"dom-sep", b"multi_message_boundary");
         //The index i is the index of pair of the key it matches to.
-        transcript_i.commit_u64(b"i", i as u64);
+        transcript_i.append_u64(b"i", i as u64);
         //Acts as the hash commitment for message, nonce commitment & pubkey
         let c: Scalar = transcript_i.challenge_scalar(b"c");
 
@@ -540,11 +542,11 @@ pub fn verify_multi(
     transcript.proto_name(b"Schnorr_musig");
 
     // Commit the context, and commit the nonce sum with label "R"
-    transcript.commit_u64(b"Multimessage_len", messages.len() as u64);
+    transcript.append_u64(b"Multimessage_len", messages.len() as u64);
 
     for (key, msg) in messages {
             transcript.commit_point(b"public_key", key.as_compressed());
-            transcript.commit_bytes(b"message", msg.as_ref());
+            transcript.append_message(b"message", msg.as_ref());
     }
 
     transcript.commit_point(b"R", &signature.R);
@@ -576,9 +578,9 @@ pub fn verify_multi(
             let mut t = transcript.clone(); //TODO is this clone cheap?
           
             //This prevents later steps from being able to get the same challenges that come from the forked transcript.
-            t.commit_bytes(b"dom-sep", b"multi_message_boundary");
+            t.append_message(b"dom-sep", b"multi_message_boundary");
             //The index i is the index of pair of the key it matches to.
-            t.commit_u64(b"i", i as u64);
+            t.append_u64(b"i", i as u64);
             //get the per-pubkey challenge c_i.
             //Acts as the hash commitment for message, nonce commitment & pubkey
             t.challenge_scalar(b"c")
@@ -594,12 +596,12 @@ pub fn verify_multi(
 
     //Check if s * G == cX + R. G is the base point.
     let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError(InternalError::VerifyError))?;
+            .ok_or(SchnorrError::from(InternalError::VerifyError))?;
 
     // We need not return SigenatureError::PointDecompressionError because
     // the decompression failures occur for R represent invalid signatures.
     if !check.is_identity() {
-        return Err(SchnorrError(InternalError::VerifyError));
+        return Err(SchnorrError::from(InternalError::VerifyError));
     }
 
     Ok(())
@@ -608,7 +610,7 @@ pub fn verify_multi(
 
 #[cfg(test)]
 mod test {
-    use mohan::merlin::Transcript;
+    use merlin::Transcript;
     use rand::prelude::*; // ThreadRng,thread_rng
     use rand_chacha::ChaChaRng;
     use blake2::digest::Input;
@@ -724,14 +726,11 @@ mod test {
     #[test]
     fn verify_multimessage_singleplayer() {
         let messages = vec![b"message1", b"message2", b"message3", b"message4"];
-        let mut ctx = SigningContext::new(b"my multi message context");
+        let ctx = Transcript::new(b"my multi message context");
         let mut csprng: ThreadRng = thread_rng();
         let mut keypairs: Vec<Keypair> = Vec::new();
         let mut pairs: Vec<(&PublicKey, &[u8])> = Vec::new();
         let mut priv_keys: Vec<&SecretKey> = Vec::new();
-
-        
-        
 
         for _i in 0..messages.len() {
             let keypair: Keypair = Keypair::generate(&mut csprng);

@@ -24,11 +24,13 @@
 
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
-use mohan::merlin::Transcript;
-use core::fmt::Debug;
+use merlin::Transcript;
+use std::fmt::Debug;
 use crate::errors::{SchnorrError, InternalError};
 use curve25519_dalek::digest::{FixedOutput, ExtendableOutput, XofReader};
 use curve25519_dalek::digest::generic_array::typenum::{U32,U64};
+
+
 
 
 //
@@ -40,7 +42,7 @@ use curve25519_dalek::digest::generic_array::typenum::{U32,U64};
 /// generating challenges as scalars.
 pub trait TranscriptProtocol {
     /// Extend transcript with some bytes, shadowed by `merlin::Transcript`.
-    fn commit_bytes(&mut self, label: &'static [u8], bytes: &[u8]);
+    fn append_message(&mut self, label: &'static [u8], bytes: &[u8]);
 
     /// Commit a `scalar` with the given `label`.
     fn commit_scalar(&mut self, label: &'static [u8], scalar: &Scalar);
@@ -51,7 +53,7 @@ pub trait TranscriptProtocol {
 
     /// Extend transcript with a protocol name
     fn proto_name(&mut self, label: &'static [u8]) {
-        self.commit_bytes(b"proto-name", label);
+        self.append_message(b"proto-name", label);
     }
 }
 
@@ -60,16 +62,16 @@ pub trait TranscriptProtocol {
 impl TranscriptProtocol for Transcript {
 
      #[inline(always)]
-    fn commit_bytes(&mut self, label: &'static [u8], bytes: &[u8]) {  
-       self.commit_bytes(label,bytes)  
+    fn append_message(&mut self, label: &'static [u8], bytes: &[u8]) {  
+       self.append_message(label,bytes)  
     }
 
     fn commit_scalar(&mut self, label: &'static [u8], scalar: &Scalar) {
-        self.commit_bytes(label, scalar.as_bytes());
+        self.append_message(label, scalar.as_bytes());
     }
 
     fn commit_point(&mut self, label: &'static [u8], point: &CompressedRistretto) {
-        self.commit_bytes(label, point.as_bytes());
+        self.append_message(label, point.as_bytes());
     }
 
     fn challenge_scalar(&mut self, label: &'static [u8]) -> Scalar {
@@ -99,7 +101,7 @@ impl SigningContext {
     /// Initalize an owned signing transcript on a message provided as a byte array
     pub fn bytes(&self, bytes: &[u8]) -> Transcript {
         let mut t = self.0.clone();
-        t.commit_bytes(b"sign-bytes", bytes);
+        t.append_message(b"sign-bytes", bytes);
         t
     }
 
@@ -110,7 +112,7 @@ impl SigningContext {
         h.xof_result().read(&mut prehash);
         let mut t = self.0.clone();
 
-        t.commit_bytes(b"sign-XoF", &prehash);
+        t.append_message(b"sign-XoF", &prehash);
         t
     }
 
@@ -120,7 +122,7 @@ impl SigningContext {
         let mut prehash = [0u8; 32]; 
         prehash.copy_from_slice(h.fixed_result().as_slice());
         let mut t = self.0.clone();
-        t.commit_bytes(b"sign-256", &prehash);
+        t.append_message(b"sign-256", &prehash);
         t
     }
 
@@ -130,7 +132,7 @@ impl SigningContext {
         let mut prehash = [0u8; 64]; 
         prehash.copy_from_slice(h.fixed_result().as_slice());
         let mut t = self.0.clone();
-        t.commit_bytes(b"sign-256", &prehash);
+        t.append_message(b"sign-256", &prehash);
         t
     }
 
@@ -179,7 +181,7 @@ impl RistrettoBoth {
     /// compressed form.
     pub fn from_compressed(compressed: CompressedRistretto) -> Result<RistrettoBoth, SchnorrError> {
         Ok(RistrettoBoth {
-            point: compressed.decompress().ok_or(SchnorrError(InternalError::PointDecompressionError)) ?,
+            point: compressed.decompress().ok_or(SchnorrError::from(InternalError::PointDecompressionError)) ?,
             compressed,
         })
     }
@@ -250,7 +252,7 @@ impl RistrettoBoth {
     pub fn from_bytes_ser(name: &'static str, description: &'static str, bytes: &[u8]) -> Result<RistrettoBoth, SchnorrError> {
        
         if bytes.len() != RISTRETTO_POINT_LENGTH {
-            return Err(SchnorrError(InternalError::BytesLengthError{
+            return Err(SchnorrError::from(InternalError::BytesLengthError{
                 name, description, length: RISTRETTO_POINT_LENGTH }));
         }
 

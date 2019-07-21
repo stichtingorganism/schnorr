@@ -11,22 +11,20 @@ documentation = "https://docs.rs/schnorr"
 edition = "2018"
 
 [dependencies]
-curve25519-dalek = { version =  "1.0.0-pre.0", features = ["serde"] }
+curve25519-dalek = { version =  "1.2", features = ["serde"] }
 serde = "^1.0"
 rand = "0.6"
 rand_chacha = "0.1.0"
 failure = "0.1"
 clear_on_drop = "0.2"
-blake2 = "0.8.0"
 subtle = { version = "2.0.0", features = ["nightly"] }
-
-mohan = "0.0.1"
+merlin = "1.1.0"
 
 [dev-dependencies]
 criterion = "0.2"
 bincode = "^0.9"
 hex = "^0.3"
-
+blake2 = "0.8"
 
 [[bench]]
 name = "schnorr_benchmarks"
