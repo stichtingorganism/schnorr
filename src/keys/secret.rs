@@ -83,7 +83,7 @@ impl SecretKey {
     /// ```
     /// # extern crate schnorr;
     /// #
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     ///
     /// # fn doctest() -> Result<SecretKey, SchnorrError> {
     /// let secret_key_bytes: [u8; SECRET_KEY_LENGTH] = [
@@ -137,7 +137,7 @@ impl SecretKey {
     /// #
     /// use rand::Rng;
     /// use rand::OsRng;
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     ///
     /// let mut csprng: OsRng = OsRng::new().unwrap();
     /// let secret_key: SecretKey = SecretKey::generate(&mut csprng);
@@ -160,7 +160,7 @@ impl SecretKey {
     /// # use rand::Rng;
     /// # use rand::ChaChaRng;
     /// # use rand::SeedableRng;
-    /// # use schnorr::prelude::*;
+    /// # use schnorr::*;
     /// #
     /// # let mut csprng: ChaChaRng = ChaChaRng::from_seed([0u8; 32]);
     /// # let secret_key: SecretKey = SecretKey::generate(&mut csprng);
@@ -190,8 +190,6 @@ impl SecretKey {
 
     ///Helper Method to Convert Scalar to Key
     pub fn from_scalar(s: Scalar) -> SecretKey { SecretKey(s) }
-
-
 
 }
 

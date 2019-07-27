@@ -1,6 +1,6 @@
 [package]
 name = "schnorr"
-version = "0.0.5"
+version = "0.0.6"
 description = "Schnorr Signatures"
 authors = ["hello@organism.org"]
 license = "Apache-2.0"

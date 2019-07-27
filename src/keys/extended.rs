@@ -86,7 +86,7 @@ impl From<&SecretKey> for XSecretKey {
     // / # fn main() {
     // / use rand::{Rng, rngs::OsRng};
     // / use blake2::Blake2b;
-    // / use schnorr::prelude::*;
+    // / use schnorr::*;
     // /
     // / let mut csprng: OsRng = OsRng::new().unwrap();
     // / let mini_secret_key: SecretKey = SecretKey::generate(&mut csprng);
@@ -122,7 +122,7 @@ impl XSecretKey {
     /// # fn main() {
     /// use rand::{Rng, rngs::OsRng};
     /// use blake2::Blake2b;
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     ///
     /// let mut csprng: OsRng = OsRng::new().unwrap();
     /// let mini_secret_key: SecretKey = SecretKey::generate(&mut csprng);
@@ -155,7 +155,7 @@ impl XSecretKey {
     /// # extern crate blake2;
     /// # extern crate schnorr;
     /// #
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     /// use rand::{Rng, rngs::OsRng};
     /// # fn do_test() -> Result<XSecretKey, SchnorrError> {
     /// let mut csprng: OsRng = OsRng::new().unwrap();

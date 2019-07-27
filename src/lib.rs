@@ -43,34 +43,51 @@ pub mod signature;
 pub mod ecdh;
 
 
-//taken from futures lib:)
-pub mod prelude {
-    //! A "prelude" for crates using the `schnorr` crate.
-    //!
-    //! This prelude is similar to the standard library's prelude in that you'll
-    //! almost always want to import its entire contents, but unlike the
-    //! standard library's prelude you'll have to do so manually:
-    //!
-    //! ```
-    //! use schnorr::prelude::*;
-    //! ```
-    //!
-    //! The prelude may grow over time as additional items see ubiquitous use.
+// Export everything public in schnorr.
+pub use crate::signature::{
+    Signature,
+    SIGNATURE_LENGTH,
+    verify_batch,
+    sign_multi,
+    verify_multi
+};
 
-    // Export everything public in schnorr.
-    pub use crate::signature::{
-        Signature,
-        SIGNATURE_LENGTH,
-        verify_batch,
-        sign_multi,
-        verify_multi
-    };
+pub use crate::errors::SchnorrError;
+pub use crate::keys::*;
+pub use crate::tools::{ SigningContext };
+pub use crate::ecdh::{
+    diffie_hellman, 
+    SharedSecret
+};
 
-    pub use crate::errors::SchnorrError;
-    pub use crate::keys::*;
-    pub use crate::tools::{ SigningContext };
-    pub use crate::ecdh::{
-        diffie_hellman, 
-        SharedSecret
-    };
-}
+
+// //taken from futures lib:)
+// pub mod prelude {
+//     //! A "prelude" for crates using the `schnorr` crate.
+//     //!
+//     //! This prelude is similar to the standard library's prelude in that you'll
+//     //! almost always want to import its entire contents, but unlike the
+//     //! standard library's prelude you'll have to do so manually:
+//     //!
+//     //! ```
+//     //! use schnorr::prelude::*;
+//     //! ```
+//     //!
+//     //! The prelude may grow over time as additional items see ubiquitous use.
+//     // Export everything public in schnorr.
+//     pub use crate::signature::{
+//         Signature,
+//         SIGNATURE_LENGTH,
+//         verify_batch,
+//         sign_multi,
+//         verify_multi
+//     };
+//     pub use crate::errors::SchnorrError;
+//     pub use crate::keys::*;
+//     pub use crate::tools::{ SigningContext };
+//     pub use crate::ecdh::{
+//         diffie_hellman, 
+//         SharedSecret
+//     };
+
+// }

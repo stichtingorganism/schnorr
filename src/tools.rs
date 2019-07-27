@@ -220,7 +220,7 @@ impl RistrettoBoth {
     /// ```
     /// # extern crate schnorr;
     /// #
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     /// use schnorr::tools::RistrettoBoth;
     ///
     /// # fn doctest() -> Result<RistrettoBoth, SchnorrError> {

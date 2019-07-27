@@ -51,7 +51,12 @@ mod test {
 
     use curve25519_dalek::ristretto::{CompressedRistretto};
 
-    use crate::prelude::*;
+    use crate::{
+        SIGNATURE_LENGTH,
+        Signature,
+        PublicKey,
+        SecretKey
+    };
 
     static COMPRESSED_PUBLIC_KEY : CompressedRistretto = CompressedRistretto([
         208, 120, 140, 129, 177, 179, 237, 159,

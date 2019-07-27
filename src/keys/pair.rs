@@ -116,7 +116,7 @@ impl Keypair {
     ///
     /// use rand::Rng;
     /// use rand::OsRng;
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     ///
     /// let mut csprng: OsRng = OsRng::new().unwrap();
     /// let keypair: Keypair = Keypair::generate(&mut csprng);

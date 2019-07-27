@@ -240,7 +240,7 @@ impl Keypair {
     /// extern crate rand;
     /// extern crate blake2;
     ///
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     /// use rand::prelude::*; // ThreadRng,thread_rng
     /// use blake2::Blake2b;
     /// use blake2::digest::{Input};
@@ -270,7 +270,7 @@ impl Keypair {
     /// # extern crate rand;
     /// # extern crate blake2;
     /// #
-    /// # use schnorr::prelude::*;
+    /// # use schnorr::*;
     /// # use rand::prelude::*; // ThreadRng,thread_rng
     /// # use blake2::digest::Input;
     /// #
@@ -313,7 +313,7 @@ impl Keypair {
     /// extern crate schnorr;
     /// extern crate rand;
     ///
-    /// use schnorr::prelude::*;
+    /// use schnorr::*;
     /// use rand::prelude::*; // ThreadRng,thread_rng
     ///
     /// # fn main() {
@@ -366,7 +366,7 @@ impl Keypair {
 /// extern crate rand;
 /// extern crate merlin;
 ///
-/// use schnorr::prelude::*;
+/// use schnorr::*;
 /// use rand::thread_rng;
 /// use rand::rngs::ThreadRng;
 /// use merlin::Transcript;
@@ -616,7 +616,16 @@ mod test {
     use blake2::digest::Input;
     use std::vec::Vec;
 
-    use crate::prelude::*;
+    use crate::{
+        Keypair,
+        PublicKey,
+        SecretKey,
+        Signature,
+        SigningContext,
+        sign_multi,
+        verify_multi,
+        verify_batch
+    };
 
     #[test]
     fn sign_verify_single() {
