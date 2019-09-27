@@ -14,17 +14,20 @@
 
 //! Implementation of the key tree protocol, a key blinding scheme for deriving hierarchies of public keys.
 
-use core::fmt::Debug;
-use curve25519_dalek::scalar::Scalar;
-use subtle::{Choice, ConstantTimeEq};
+use std::fmt::Debug;
 use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
 use rand::{Rng, CryptoRng};
-use crate::errors::{SchnorrError, InternalError};
-use merlin::Transcript;
-use crate::tools::{TranscriptProtocol};
-use curve25519_dalek::ristretto::{CompressedRistretto};
-use curve25519_dalek::constants;
-
+use crate::SchnorrError;
+use subtle::{Choice, ConstantTimeEq};
+use bacteria::Transcript;
+use mohan::{
+    dalek::{
+        scalar::Scalar,
+        constants,
+        ristretto::{CompressedRistretto}
+    }
+};
+use zeroize::Zeroize;
 
 /// The length of the "Derivation key" portion of a Extended Schnorr public key, in bytes.
 const EXTENDED_PUBLIC_KEY_NONCE_LENGTH: usize = 32;
@@ -46,12 +49,18 @@ pub struct XSecretKey {
     pub (crate) xpub: XPublicKey
 }
 
-// impl Drop for XSecretKey {
-//     fn drop(&mut self) {
-//         self.key.clear();
-//     }
-// }
 
+impl ::zeroize::Zeroize for XSecretKey {
+    fn zeroize(&mut self) {
+        self.key.zeroize();
+    }
+}
+
+impl Drop for XSecretKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
 
 impl Debug for XSecretKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
@@ -176,11 +185,11 @@ impl XSecretKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<XSecretKey, SchnorrError> {
 
         if bytes.len() != EXTENDED_SECRET_KEY_LENGTH {
-             return Err(SchnorrError::from(InternalError::BytesLengthError{
+             return Err(SchnorrError::BytesLengthError{
                 name: "XSecretKey",  
                 description: XSecretKey::DESCRIPTION, 
                 length: EXTENDED_SECRET_KEY_LENGTH 
-            }));
+            });
         }
 
         let mut key: [u8; 32] = [0u8; 32];

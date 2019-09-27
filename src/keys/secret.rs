@@ -14,18 +14,18 @@
 
 
 //! Schnorr Secret Key & Extended Secret Key generation 
-
-
-use core::fmt::{Debug};
+use std::fmt::{Debug};
 use subtle::{Choice, ConstantTimeEq};
 use rand::{Rng, CryptoRng};
-use curve25519_dalek::scalar::Scalar;
-use crate::errors::{SchnorrError, InternalError};
-use clear_on_drop::clear::Clear;
+use mohan::{
+    dalek::scalar::Scalar,
+    ser
+};
+use crate::SchnorrError;
+use zeroize::Zeroize;
 
 /// The length of a curve25519 Schnorr `SecretKey`, in bytes.
 pub const SECRET_KEY_LENGTH: usize = 32;
-
 
 
 /// An Schnorr secret key.
@@ -45,20 +45,25 @@ impl PartialEq for SecretKey {
         self.ct_eq(other).unwrap_u8() == 1u8
     }
 }
+
 impl ConstantTimeEq for SecretKey {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
     }
 }
 
-/// Overwrite secret key material with null bytes when it goes out of scope.
-impl Drop for SecretKey {
-    fn drop(&mut self) {
-        self.0.clear();
+impl Zeroize for SecretKey {
+    fn zeroize(&mut self) {
+        mohan::zeroize_hack(&mut self.0);
     }
 }
 
-
+/// Overwrite secret key material with null bytes when it goes out of scope.
+impl Drop for SecretKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
 
 impl SecretKey {
 
@@ -110,11 +115,11 @@ impl SecretKey {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SchnorrError> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SchnorrError::from(InternalError::BytesLengthError{
+            return Err(SchnorrError::BytesLengthError{
                 name: "SecretKey",  
                 description: SecretKey::DESCRIPTION, 
                 length: SECRET_KEY_LENGTH 
-            }));
+            });
         }
 
 
@@ -194,6 +199,16 @@ impl SecretKey {
 }
 
 
-serde_boilerplate!(SecretKey);
+impl ser::Writeable for SecretKey {
+	fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+        self.0.write(writer)?;
+        Ok(())
+	}
+}
 
+impl ser::Readable for SecretKey {
+	fn read(reader: &mut dyn ser::Reader) -> Result<SecretKey, ser::Error> {
+		Ok(SecretKey(Scalar::read(reader)?))
+	}
+}
 

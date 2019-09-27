@@ -1,6 +1,6 @@
 [package]
 name = "schnorr"
-version = "0.0.6"
+version = "0.0.7"
 description = "Schnorr Signatures"
 authors = ["hello@organism.org"]
 license = "Apache-2.0"
@@ -11,14 +11,14 @@ documentation = "https://docs.rs/schnorr"
 edition = "2018"
 
 [dependencies]
-curve25519-dalek = { version =  "1.2", features = ["serde"] }
 serde = "^1.0"
 rand = "0.6"
 rand_chacha = "0.1.0"
 failure = "0.1"
-clear_on_drop = "0.2"
 subtle = { version = "2.0.0", features = ["nightly"] }
-merlin = "1.1.0"
+bacteria = "0.0.4"
+mohan = "0.0.23"
+zeroize = { version = "0.10.*", features = ["zeroize_derive"] }
 
 [dev-dependencies]
 criterion = "0.2"
@@ -29,12 +29,3 @@ blake2 = "0.8"
 [[bench]]
 name = "schnorr_benchmarks"
 harness = false
-
-[features]
-default = ["std", "u64_backend", "avx2_backend"]
-std = ["curve25519-dalek/std"]
-alloc = ["curve25519-dalek/alloc"]
-nightly = ["curve25519-dalek/nightly", "rand/nightly", "clear_on_drop/nightly"]
-u64_backend = ["curve25519-dalek/u64_backend"]
-u32_backend = ["curve25519-dalek/u32_backend"]
-avx2_backend = ["curve25519-dalek/avx2_backend"]

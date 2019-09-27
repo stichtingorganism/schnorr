@@ -16,9 +16,10 @@
 //! A Rust implementation of Schnorr key generation, 
 
 use rand::{Rng, CryptoRng};
-use crate::errors::{SchnorrError, InternalError};
+use crate::SchnorrError;
 use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
-use clear_on_drop::clear::Clear;
+use zeroize::Zeroize;
+use mohan::ser;
 
 /// The length of an ed25519 Schnorr `Keypair`, in bytes.
 pub const KEYPAIR_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
@@ -41,11 +42,15 @@ impl From<SecretKey> for Keypair {
     }
 }
 
-/// Overwrite secret key material with null bytes when it goes out of scope.
+impl ::zeroize::Zeroize for Keypair {
+    fn zeroize(&mut self) {
+        self.secret.zeroize();
+    }
+}
+
 impl Drop for Keypair {
     fn drop(&mut self) {
-        self.secret.clear();
-        self.public.clear();
+        self.zeroize();
     }
 }
 
@@ -56,53 +61,53 @@ impl Keypair {
                                      the first 32 bytes and the second \
                                      32 bytes is a compressed point for a public key.";
 
-    /// Convert this keypair to bytes.
-    ///
-    /// # Returns
-    ///
-    /// An array of bytes, `[u8; KEYPAIR_LENGTH]`.  The first
-    /// `SECRET_KEY_LENGTH` of bytes is the `SecretKey`, and the next
-    /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey` 
-    pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
-        let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
+    // /// Convert this keypair to bytes.
+    // ///
+    // /// # Returns
+    // ///
+    // /// An array of bytes, `[u8; KEYPAIR_LENGTH]`.  The first
+    // /// `SECRET_KEY_LENGTH` of bytes is the `SecretKey`, and the next
+    // /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey` 
+    // pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
+    //     let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
 
-        bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.secret.as_bytes());
-        bytes[SECRET_KEY_LENGTH..].copy_from_slice(self.public.as_bytes());
-        bytes
-    }
+    //     bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.secret.as_bytes());
+    //     bytes[SECRET_KEY_LENGTH..].copy_from_slice(self.public.as_bytes());
+    //     bytes
+    // }
 
-    /// Construct a `Keypair` from the bytes of a `PublicKey` and `SecretKey`.
-    ///
-    /// # Inputs
-    ///
-    /// * `bytes`: an `&[u8]` representing the scalar for the secret key, and a
-    ///   compressed Edwards-Y coordinate of a point on curve25519, both as bytes.
-    ///   (As obtained from `Keypair::to_bytes()`.)
-    ///
-    /// # Warning
-    ///
-    /// Absolutely no validation is done on the key.  If you give this function
-    /// bytes which do not represent a valid point, or which do not represent
-    /// corresponding parts of the key, then your `Keypair` will be broken and
-    /// it will be your fault.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` whose okay value is an Schnorr `Keypair` or whose error value
-    /// is an `SchnorrError` describing the error that occurred.
-    pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
-        if bytes.len() != KEYPAIR_LENGTH {
-            return Err(SchnorrError::from(InternalError::BytesLengthError{
-                name: "Keypair", 
-                description: Keypair::DESCRIPTION, 
-                length: KEYPAIR_LENGTH
-            }));
-        }
-        let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
-        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
+    // /// Construct a `Keypair` from the bytes of a `PublicKey` and `SecretKey`.
+    // ///
+    // /// # Inputs
+    // ///
+    // /// * `bytes`: an `&[u8]` representing the scalar for the secret key, and a
+    // ///   compressed Edwards-Y coordinate of a point on curve25519, both as bytes.
+    // ///   (As obtained from `Keypair::to_bytes()`.)
+    // ///
+    // /// # Warning
+    // ///
+    // /// Absolutely no validation is done on the key.  If you give this function
+    // /// bytes which do not represent a valid point, or which do not represent
+    // /// corresponding parts of the key, then your `Keypair` will be broken and
+    // /// it will be your fault.
+    // ///
+    // /// # Returns
+    // ///
+    // /// A `Result` whose okay value is an Schnorr `Keypair` or whose error value
+    // /// is an `SchnorrError` describing the error that occurred.
+    // pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
+    //     if bytes.len() != KEYPAIR_LENGTH {
+    //         return Err(SchnorrError::BytesLengthError{
+    //             name: "Keypair", 
+    //             description: Keypair::DESCRIPTION, 
+    //             length: KEYPAIR_LENGTH
+    //         });
+    //     }
+    //     let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
+    //     let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
 
-        Ok(Keypair{ secret: secret, public: public })
-    }
+    //     Ok(Keypair{ secret: secret, public: public })
+    // }
 
     /// Generate an schnorr keypair.
     ///
@@ -148,23 +153,28 @@ impl Keypair {
         }
     }
 
-    // /// Sign a message with this keypair's secret key.
-    // pub fn sign<D, T>(&self, csprng: &mut T, message: &[u8]) -> Signature
-    //     where D: Digest<OutputSize = U64> + Default, T: CryptoRng + Rng
-    // {
-    //     self.secret.sign::<D, T>(csprng, &message, &self.public)
-    // }
-
-
-    // /// Verify a signature on a message with this keypair's public key.
-    // pub fn verify<D>(&self, message: &[u8], signature: &Signature) -> Result<(), SchnorrError>
-    //         where D: Digest<OutputSize = U64> + Default {
-    //     self.public.verify::<D>(message, signature)
-    // }
 }
 
-serde_boilerplate!(Keypair);
+impl ser::Writeable for Keypair {
+	fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+        self.secret.write(writer)?;
+        self.public.write(writer)?;
 
+        Ok(())
+	}
+}
+
+impl ser::Readable for Keypair {
+	fn read(reader: &mut dyn ser::Reader) -> Result<Keypair, ser::Error> {
+        let s = SecretKey::read(reader)?;
+        let p = PublicKey::read(reader)?;
+
+		Ok(Keypair{
+            secret: s,
+            public: p
+        })
+	}
+}
 
 
 #[cfg(test)]
@@ -175,7 +185,7 @@ mod test {
     fn keypair_clear_on_drop() {
         let mut keypair: Keypair = Keypair::generate(&mut rand::prelude::thread_rng());
 
-        keypair.clear();
+        keypair.zeroize();
 
         fn as_bytes<T>(x: &T) -> &[u8] {
             use core::mem;

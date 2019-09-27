@@ -35,9 +35,10 @@
 //https://medium.com/cryptoadvance/how-schnorr-signatures-may-improve-bitcoin-91655bcb4744
 
 
-#[macro_use] mod ser;
-pub mod errors;
+mod errors;
+pub use errors::SchnorrError;
 pub mod tools;
+pub use crate::tools::{ SigningContext };
 pub mod keys;
 pub mod signature;
 pub mod ecdh;
@@ -52,9 +53,7 @@ pub use crate::signature::{
     verify_multi
 };
 
-pub use crate::errors::SchnorrError;
 pub use crate::keys::*;
-pub use crate::tools::{ SigningContext };
 pub use crate::ecdh::{
     diffie_hellman, 
     SharedSecret

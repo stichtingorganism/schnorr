@@ -16,12 +16,7 @@
 //! Errors which may occur when parsing keys and/or signatures to or from wire formats.
 
 
-
-use std::fmt;
-use failure::{Backtrace, Context, Fail};
-
-/// An alias for results returned by functions of this crate
-pub type SchnorrResult<T> = ::std::result::Result<T, SchnorrError>;
+use failure::Fail;
 
 #[derive(Eq, PartialEq, Debug, Fail, Clone)]
 pub enum MuSigError {
@@ -76,7 +71,7 @@ pub enum MuSigError {
 /// Internal errors.  Most application-level developers will likely not
 /// need to pay any attention to these.
 #[derive(Eq, PartialEq, Debug, Fail, Clone)]
-pub enum InternalError {
+pub enum SchnorrError {
     /// Invalid point provided.
     #[fail(display = "Cannot decompress Edwards point")]
     PointDecompressionError,
@@ -123,89 +118,3 @@ pub enum InternalError {
 
 }
 
-
-
-/// Errors which may occur while processing signatures and keypairs.
-///
-/// This error may arise due to:
-///
-/// * Being given bytes with a length different to what was expected.
-///
-/// * A problem decompressing `r`, a curve point, in the `Signature`, or the
-///   curve point for a `PublicKey`.
-///
-/// * A problem with the format of `s`, a scalar, in the `Signature`.  This
-///   is only raised if the high-bit of the scalar was set.  (Scalars must
-///   only be constructed from 255-bit integers.)
-///
-/// * Failure of a signature to satisfy the verification equation.
-#[derive(Debug)]
-pub struct SchnorrError {
-    inner: Context<InternalError>,
-}
-
-impl SchnorrError {
-    /// Get the kind of the error
-    pub fn kind(&self) -> &InternalError {
-        self.inner.get_context()
-    }
-}
-
-
-impl Clone for SchnorrError {
-    fn clone(&self) -> Self {
-        SchnorrError {
-            inner: Context::new(self.inner.get_context().clone()),
-        }
-    }
-}
-
-
-impl fmt::Display for SchnorrError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.inner, f)
-    }
-}
-
-impl Fail for SchnorrError {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
-    }
-}
-
-impl From<InternalError> for SchnorrError {
-    fn from(kind: InternalError) -> SchnorrError {
-        SchnorrError {
-            inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<Context<InternalError>> for SchnorrError {
-    fn from(inner: Context<InternalError>) -> SchnorrError {
-        SchnorrError { inner }
-    }
-}
-
-
-/// Convert `SchnorrError` into `::serde::de::Error` aka `SerdeError`
-///
-/// We should do this with `From` but right now the orphan rules prohibit
-/// `impl From<SchnorrError> for E where E: ::serde::de::Error`.
-pub(crate) fn serde_error_from_signature_error<E>(err: SchnorrError) -> E
-where E: ::serde::de::Error
-{
-    match *err.kind() {
-        InternalError::PointDecompressionError
-            => E::custom("Ristretto point decompression failed"),
-        InternalError::ScalarFormatError
-            => E::custom("improper scalar has high-bit set"), 
-        InternalError::BytesLengthError{ description, length, .. }
-            => E::invalid_length(length, &description),
-        _ => panic!("Non-serialisation error encountered by serde!"),
-    }
-}

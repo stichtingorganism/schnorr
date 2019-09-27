@@ -15,22 +15,27 @@
 
 //! A Rust implementation of Schnorr signing
 
-use core::borrow::Borrow;
-use curve25519_dalek::traits::IsIdentity;
-use curve25519_dalek::traits::VartimeMultiscalarMul;
-use core::fmt::{Debug};
-use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::ristretto::{RistrettoPoint, CompressedRistretto};
-use curve25519_dalek::constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_TABLE};
-use crate::errors::{SchnorrError, InternalError, MuSigError};
+use std::fmt::Debug;
+use std::borrow::Borrow;
+use mohan::dalek::{
+    traits::{
+        IsIdentity,
+        VartimeMultiscalarMul,
+    },
+    scalar::Scalar,
+    ristretto::{
+        RistrettoPoint, 
+        CompressedRistretto
+    },
+    constants::{
+        RISTRETTO_BASEPOINT_POINT, 
+        RISTRETTO_BASEPOINT_TABLE
+    }
+};
+use crate::errors::{SchnorrError, MuSigError};
 use crate::keys::{PublicKey, SecretKey, Keypair};
-use crate::tools::TranscriptProtocol;
-// use crate::tools::SigningContext;
-use merlin::Transcript;
 
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-#[cfg(feature = "std")]
+use bacteria::Transcript;
 use std::vec::Vec;
 
 /// The length of a curve25519 Schnorr `Signature`, in bytes.
@@ -45,7 +50,6 @@ pub const SIGNATURE_LENGTH: usize = 64;
 /// of the message which has been signed.
 #[allow(non_snake_case)]
 #[derive(Copy, Eq, PartialEq)]
-#[repr(C)]
 pub struct Signature {
     /// `R` is an `RistrettoPoint`, formed by taking the sampled
     /// random integer `r` in ℤp for each message to be signed.
@@ -97,11 +101,11 @@ impl Signature {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SchnorrError> {
         if bytes.len() != SIGNATURE_LENGTH {
-            return Err(SchnorrError::from(InternalError::BytesLengthError{
+            return Err(SchnorrError::BytesLengthError{
                 name: "Signature", 
                 description: Signature::DESCRIPTION,
                 length: SIGNATURE_LENGTH 
-            }));
+            });
         }
         let mut lower: [u8; 32] = [0u8; 32];
         let mut upper: [u8; 32] = [0u8; 32];
@@ -110,7 +114,7 @@ impl Signature {
         upper.copy_from_slice(&bytes[32..]);
 
         if upper[31] & 224 != 0 {
-            return Err(SchnorrError::from(InternalError::ScalarFormatError));
+            return Err(SchnorrError::ScalarFormatError);
         }
 
         Ok(Signature{ R: CompressedRistretto(lower), s: Scalar::from_bits(upper) })
@@ -121,8 +125,6 @@ impl Signature {
     }
 }
 
-
-serde_boilerplate!(Signature);
 
 
 // === Implement signing and verification operations on key types === //
@@ -142,7 +144,7 @@ impl SecretKey {
     /// fails and the function gets called with the wrong public key.
     // Sign a message with this `SecretKey`.
     pub fn sign(&self, mut transcript: Transcript, public_key: &PublicKey) -> Signature {
-        // The message `m` has already been fed into the transcript
+        //The message `m` has already been fed into the transcript
         //set the domain
         transcript.proto_name(b"Schnorr_sig");
 
@@ -364,15 +366,15 @@ impl Keypair {
 /// ```
 /// extern crate schnorr;
 /// extern crate rand;
-/// extern crate merlin;
+/// extern crate bacteria;
 ///
 /// use schnorr::*;
 /// use rand::thread_rng;
 /// use rand::rngs::ThreadRng;
-/// use merlin::Transcript;
+/// use bacteria::Transcript;
 ///
 /// # fn main() {
-
+///
 /// let ctx = SigningContext::new(b"some batch");
 /// let mut csprng: ThreadRng = thread_rng();
 /// let keypairs: Vec<Keypair> = (0..64).map(|_| Keypair::generate(&mut csprng)).collect();
@@ -385,7 +387,6 @@ impl Keypair {
 /// assert!( verify_batch(&transcripts[..], &signatures[..], &public_keys[..]).is_ok() );
 /// # }
 /// ```
-#[cfg(any(feature = "alloc", feature = "std"))]
 #[allow(non_snake_case)]
 pub fn verify_batch(
     transcripts: &[Transcript], 
@@ -399,11 +400,11 @@ pub fn verify_batch(
      
     // Check transcripts length below
     if !signatures.len() == public_keys.len() && !transcripts.len() == public_keys.len() {
-            return Err(SchnorrError::from(InternalError::BytesLengthError{
+            return Err(SchnorrError::BytesLengthError{
                 name: "Verify Batch",  
                 description: ASSERT_MESSAGE, 
                 length: 0 
-            }));
+            });
     }
 
     // Get the total number of points in batch
@@ -454,12 +455,12 @@ pub fn verify_batch(
     // `0 == (-s * G) + (1 * R) + (c * X)`
     // G is the base point.
     let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError::from(InternalError::VerifyError))?;
+            .ok_or(SchnorrError::VerifyError)?;
 
     // We need not return SigenatureError::PointDecompressionError because
     // the decompression failures occur for R represent invalid signatures.
     if !check.is_identity() {
-        return Err(SchnorrError::from(InternalError::VerifyError));
+        return Err(SchnorrError::VerifyError);
     }
     
     Ok(())
@@ -475,14 +476,15 @@ pub fn sign_multi(
 
     if messages.len() != keys.len() {
             return Err(
-                SchnorrError::from(
-                    InternalError::MuSig { kind: MuSigError::TooManyParticipants }
-                )
+                SchnorrError::MuSig { 
+                    kind: MuSigError::TooManyParticipants 
+                }
+
             );
     }
     
     if keys.len() == 0 {
-        return Err(SchnorrError::from(InternalError::BadArguments));
+        return Err(SchnorrError::BadArguments);
     }
 
     //set the domain
@@ -596,12 +598,12 @@ pub fn verify_multi(
 
     //Check if s * G == cX + R. G is the base point.
     let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError::from(InternalError::VerifyError))?;
+            .ok_or(SchnorrError::VerifyError)?;
 
     // We need not return SigenatureError::PointDecompressionError because
     // the decompression failures occur for R represent invalid signatures.
     if !check.is_identity() {
-        return Err(SchnorrError::from(InternalError::VerifyError));
+        return Err(SchnorrError::VerifyError);
     }
 
     Ok(())
@@ -610,11 +612,11 @@ pub fn verify_multi(
 
 #[cfg(test)]
 mod test {
-    use merlin::Transcript;
+    use bacteria::Transcript;
     use rand::prelude::*; // ThreadRng,thread_rng
     use rand_chacha::ChaChaRng;
     use blake2::digest::Input;
-    use std::vec::Vec;
+    // use std::vec::Vec;
 
     use crate::{
         Keypair,

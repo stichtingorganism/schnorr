@@ -36,11 +36,11 @@ pub use pair::{
     Keypair
 };
 
-mod extended;
-pub use extended::{
-    XSecretKey,
-    XPublicKey
-};
+// mod extended;
+// pub use extended::{
+//     XSecretKey,
+//     XPublicKey
+// };
 
 
 
@@ -48,9 +48,11 @@ pub use extended::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use curve25519_dalek::scalar::Scalar;
-    use curve25519_dalek::ristretto::RistrettoPoint;
-    use curve25519_dalek::traits::Identity;
+    use mohan::dalek::{
+        scalar::Scalar,
+        ristretto::RistrettoPoint,
+        traits::Identity
+    };
 
     #[test]
     fn test_identity_keys() {
