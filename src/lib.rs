@@ -37,56 +37,53 @@
 
 mod errors;
 pub use errors::SchnorrError;
-pub mod tools;
-pub use crate::tools::{ SigningContext };
+mod tools;
+pub use tools::SigningContext;
+
 pub mod keys;
 pub mod signature;
-pub mod ecdh;
-
-
-// Export everything public in schnorr.
-pub use crate::signature::{
+/// Export everything public in schnorr.
+pub use signature::{
     Signature,
     SIGNATURE_LENGTH,
-    verify_batch,
-    sign_multi,
-    verify_multi
 };
 
-pub use crate::keys::*;
+/// Key Swap
+mod ecdh;
 pub use crate::ecdh::{
     diffie_hellman, 
     SharedSecret
 };
 
+/// A Multisignature over many different messages
+mod multimessage;
+pub use multimessage::{
+   Multimessage
+};
+mod multisignature;
+pub use multisignature::Multisignature;
 
-// //taken from futures lib:)
-// pub mod prelude {
-//     //! A "prelude" for crates using the `schnorr` crate.
-//     //!
-//     //! This prelude is similar to the standard library's prelude in that you'll
-//     //! almost always want to import its entire contents, but unlike the
-//     //! standard library's prelude you'll have to do so manually:
-//     //!
-//     //! ```
-//     //! use schnorr::prelude::*;
-//     //! ```
-//     //!
-//     //! The prelude may grow over time as additional items see ubiquitous use.
-//     // Export everything public in schnorr.
-//     pub use crate::signature::{
-//         Signature,
-//         SIGNATURE_LENGTH,
-//         verify_batch,
-//         sign_multi,
-//         verify_multi
-//     };
-//     pub use crate::errors::SchnorrError;
-//     pub use crate::keys::*;
-//     pub use crate::tools::{ SigningContext };
-//     pub use crate::ecdh::{
-//         diffie_hellman, 
-//         SharedSecret
-//     };
+pub use crate::keys::*;
+mod batch;
+pub use batch::{
+    BatchVerification, 
+    BatchVerifier, 
+    SingleVerifier
+};
 
-// }
+mod context;
+pub use context::MuSigContext;
+
+/// A Multisig Participator
+pub(crate) mod counterparty;
+
+/// Multisig local signer
+mod signer;
+pub use signer::{
+    Signer, SignerAwaitingCommitments, SignerAwaitingPrecommitments, SignerAwaitingShares,
+};
+
+
+#[cfg(test)]
+mod musig_test;
+

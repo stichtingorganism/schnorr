@@ -95,53 +95,56 @@ impl PublicKey {
         &self.0.as_compressed().0
     }
 
-    // /// Construct a `PublicKey` from a slice of bytes.
-    // ///
-    // /// # Warning
-    // ///
-    // /// The caller is responsible for ensuring that the bytes passed into this
-    // /// method actually represent a `curve25519_dalek::curve::CompressedRistretto`
-    // /// and that said compressed point is actually a point on the curve.
-    // ///
-    // /// # Example
-    // ///
-    // /// ```
-    // /// # extern crate schnorr;
-    // /// #
-    // /// use schnorr::*;
-    // ///
-    // /// # fn doctest() -> Result<PublicKey, SchnorrError> {
-    // /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
-    // ///    215,  90, 152,   1, 130, 177,  10, 183, 213,  75, 254, 211, 201, 100,   7,  58,
-    // ///     14, 225, 114, 243, 218, 166,  35,  37, 175,   2,  26, 104, 247,   7,   81, 26];
-    // ///
-    // /// let public_key = PublicKey::from_bytes(&public_key_bytes)?;
-    // /// #
-    // /// # Ok(public_key)
-    // /// # }
-    // /// #
-    // /// # fn main() {
-    // /// #     doctest();
-    // /// # }
-    // /// ```
-    // ///
-    // /// # Returns
-    // ///
-    // /// A `Result` whose okay value is an Schnorr `PublicKey` or whose error value
-    // /// is an `SchnorrError` describing the error that occurred.
-    // #[inline]
-    // pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SchnorrError> {
-    //     Ok(PublicKey(RistrettoBoth::from_bytes_ser("PublicKey", PublicKey::DESCRIPTION, bytes) ?))
-    // }
+    /// Construct a `PublicKey` from a slice of bytes.
+    ///
+    /// # Warning
+    ///
+    /// The caller is responsible for ensuring that the bytes passed into this
+    /// method actually represent a `curve25519_dalek::curve::CompressedRistretto`
+    /// and that said compressed point is actually a point on the curve.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # extern crate schnorr;
+    /// #
+    /// use schnorr::*;
+    ///
+    /// # fn doctest() -> Result<PublicKey, SchnorrError> {
+    /// let public_key_bytes: [u8; PUBLIC_KEY_LENGTH] = [
+    ///    215,  90, 152,   1, 130, 177,  10, 183, 213,  75, 254, 211, 201, 100,   7,  58,
+    ///     14, 225, 114, 243, 218, 166,  35,  37, 175,   2,  26, 104, 247,   7,   81, 26];
+    ///
+    /// let public_key = PublicKey::from_bytes(&public_key_bytes)?;
+    /// #
+    /// # Ok(public_key)
+    /// # }
+    /// #
+    /// # fn main() {
+    /// #     doctest();
+    /// # }
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// A `Result` whose okay value is an Schnorr `PublicKey` or whose error value
+    /// is an `SchnorrError` describing the error that occurred.
+    #[inline]
+    pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SchnorrError> {
+        match RistrettoBoth::from_bytes(bytes) {
+            Some(pk) => Ok(PublicKey(pk)),
+            None => Err(SchnorrError::SerError)
+        }
+    }
 
     /// Derive this public key from its corresponding `SecretKey`.
     pub fn from_secret(secret_key: &SecretKey) -> PublicKey {
-        PublicKey(RistrettoBoth::from_point(Self::from_secret_uncompressed(&Scalar::from_bits(secret_key.to_bytes()))))
+        Self::from_secret_uncompressed(secret_key.as_scalar())
     }
 
-    /// Constructs an uncompressed VerificationKey point from a private key.
-    pub(crate) fn from_secret_uncompressed(privkey: &Scalar) -> RistrettoPoint {
-        privkey * &constants::RISTRETTO_BASEPOINT_TABLE
+    /// 
+    pub(crate) fn from_secret_uncompressed(privkey: &Scalar) -> PublicKey {
+        PublicKey(RistrettoBoth::from_point(privkey * &constants::RISTRETTO_BASEPOINT_TABLE))
     }
 
 
@@ -167,17 +170,17 @@ impl PartialEq for PublicKey {
 
 impl Eq for PublicKey {}
 
-impl PartialOrd for PublicKey {
-    fn partial_cmp(&self, other: &PublicKey) -> Option<std::cmp::Ordering> {
-        self.to_bytes().partial_cmp(&other.to_bytes())
-    }
-}
+// impl PartialOrd for PublicKey {
+//     fn partial_cmp(&self, other: &PublicKey) -> Option<std::cmp::Ordering> {
+//         self.as_point.partial_cmp(&other.as_point())
+//     }
+// }
 
-impl Ord for PublicKey {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.to_bytes().cmp(&other.to_bytes())
-    }
-}
+// impl Ord for PublicKey {
+//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+//         self.as_point().cmp(&other.as_point())
+//     }
+// }
 
 
 impl ser::Writeable for PublicKey {

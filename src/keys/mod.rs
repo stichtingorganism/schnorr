@@ -36,11 +36,16 @@ pub use pair::{
     Keypair
 };
 
-// mod extended;
-// pub use extended::{
-//     XSecretKey,
-//     XPublicKey
-// };
+/// Musig Key
+mod multikey;
+pub use multikey::MultiKey;
+
+
+mod extended;
+pub use extended::{
+    XSecretKey,
+    XPublicKey
+};
 
 
 

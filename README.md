@@ -14,6 +14,8 @@ A Multi Signature Protocol is also provided.
 
 (2) This code is not secure against side-channel attacks
 
+(3) Little Endian Platforms ONLY
+
 # Installation
 
 To install, add the following to your project's `Cargo.toml`:

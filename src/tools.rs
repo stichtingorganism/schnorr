@@ -22,8 +22,6 @@
 //! which helps several protocols avoid duplicate ristretto compressions
 //! and/or decompressions.  
 
-use mohan::dalek::ristretto::{CompressedRistretto, RistrettoPoint};
-use mohan::dalek::scalar::Scalar;
 use bacteria::Transcript;
 use mohan::dalek::digest::{FixedOutput, ExtendableOutput, XofReader};
 use mohan::dalek::digest::generic_array::typenum::{U32,U64};

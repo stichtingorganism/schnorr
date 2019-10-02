@@ -16,7 +16,6 @@
 //! A Rust implementation of Schnorr signing
 
 use std::fmt::Debug;
-use std::borrow::Borrow;
 use mohan::dalek::{
     traits::{
         IsIdentity,
@@ -32,11 +31,18 @@ use mohan::dalek::{
         RISTRETTO_BASEPOINT_TABLE
     }
 };
-use crate::errors::{SchnorrError, MuSigError};
-use crate::keys::{PublicKey, SecretKey, Keypair};
+
+use crate::errors::SchnorrError;
+use crate::keys::{PublicKey, SecretKey};
+use crate::batch::{
+    SingleVerifier,
+    BatchVerification
+};
 
 use bacteria::Transcript;
 use std::vec::Vec;
+use std::iter;
+
 
 /// The length of a curve25519 Schnorr `Signature`, in bytes.
 pub const SIGNATURE_LENGTH: usize = 64;
@@ -84,147 +90,7 @@ impl Debug for Signature {
 
 
 impl Signature {
-
-    const DESCRIPTION : &'static str = "A 64 byte Ristretto Schnorr signature";
-
-    /// Convert this `Signature` to a byte array.
-    #[inline]
-    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
-        let mut signature_bytes: [u8; SIGNATURE_LENGTH] = [0u8; SIGNATURE_LENGTH];
-
-        signature_bytes[..32].copy_from_slice(&self.R.as_bytes()[..]);
-        signature_bytes[32..].copy_from_slice(&self.s.as_bytes()[..]);
-        signature_bytes
-    }
-
-    /// Construct a `Signature` from a slice of bytes.
-    #[inline]
-    pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SchnorrError> {
-        if bytes.len() != SIGNATURE_LENGTH {
-            return Err(SchnorrError::BytesLengthError{
-                name: "Signature", 
-                description: Signature::DESCRIPTION,
-                length: SIGNATURE_LENGTH 
-            });
-        }
-        let mut lower: [u8; 32] = [0u8; 32];
-        let mut upper: [u8; 32] = [0u8; 32];
-
-        lower.copy_from_slice(&bytes[..32]);
-        upper.copy_from_slice(&bytes[32..]);
-
-        if upper[31] & 224 != 0 {
-            return Err(SchnorrError::ScalarFormatError);
-        }
-
-        Ok(Signature{ R: CompressedRistretto(lower), s: Scalar::from_bits(upper) })
-
-        //let s = Scalar::from_canonical_bytes(upper).ok_or(SignatureError::ScalarFormatError) ?;
-        //Ok(Signature{ R: CompressedRistretto(lower), s: s })
- 
-    }
-}
-
-
-
-// === Implement signing and verification operations on key types === //
-
-impl SecretKey {
-
-    /// Sign a transcript with this `SecretKey`.
-    ///
-    /// Requires a `SigningTranscript`, normally created from a
-    /// `SigningContext` and a message, as well as the public key
-    /// correspodning to `self`.  Returns a Schnorr signature.
-    ///
-    /// We employ a randomized nonce here, but also incorporate the
-    /// transcript like in a derandomized scheme, but only after first
-    /// extending the transcript by the public key.  As a result, there
-    /// should be no attacks even if both the random number generator
-    /// fails and the function gets called with the wrong public key.
-    // Sign a message with this `SecretKey`.
-    pub fn sign(&self, mut transcript: Transcript, public_key: &PublicKey) -> Signature {
-        //The message `m` has already been fed into the transcript
-        //set the domain
-        transcript.proto_name(b"Schnorr_sig");
-
-        //commit corresponding public key
-        transcript.commit_point(b"public_key", public_key.as_compressed());
-
-        //randomize transcrip and commit private key
-        let mut rng = transcript
-            .build_rng()
-            .rekey_with_witness_bytes(b"secret_key", self.as_bytes()) 
-            .finalize(&mut rand::thread_rng());
-
-        // Generate ephemeral keypair (r, R). r is a random nonce.
-        let r: Scalar = Scalar::random(&mut rng);
-
-        // R = generator * r, commiment to nonce
-        let _r: CompressedRistretto = (&r * &RISTRETTO_BASEPOINT_TABLE).compress();
-
-        //commit to our nonce
-        transcript.commit_point(b"R", &_r);
-
-        //Acts as the hash commitment for message, nonce commitment & pubkey
-        let c =  transcript.challenge_scalar(b"c");
-
-        //compute the signature, s = r + cx
-        let s = &r + &(&c * self.as_scalar());  
-
-        Signature { R: _r, s: s }
-    }
-
-    /// Sign a message with this `SecretKey`.
-    pub fn sign_simple(&self, ctx: &'static [u8], msg: &[u8], public_key: &PublicKey) -> Signature {
-        let mut t = Transcript::new(ctx);
-        t.append_message(b"sign-bytes", msg);
-        self.sign(t, public_key)
-    }
-
-}
-
-
-impl PublicKey {
-
-    /// Verify a signature on a message with this keypair's public key.
-    ///
-    /// # Return
-    ///
-    /// Returns `Ok(())` if the signature is valid, and `Err` otherwise.
-    #[allow(non_snake_case)]
-    pub fn verify(&self, mut transcript: Transcript, signature: &Signature) -> bool {
-        //set the domain
-        transcript.proto_name(b"Schnorr_sig");
-
-        // Make c = H(X, R, m)
-        // The message `m` has already been fed into the transcript
-        transcript.commit_point(b"public_key", self.as_compressed());
-        transcript.commit_point(b"R", &signature.R);
-       
-        let c: Scalar = transcript.challenge_scalar(b"c");
-        let A: &RistrettoPoint = self.as_point();
-        let R: RistrettoPoint = RistrettoPoint::vartime_double_scalar_mul_basepoint(&c, &(-A), &signature.s);
-        
-        // Validate the final linear combination:
-        // `s * G = R + c * X`
-        //      ->
-        // `0 == (-s * G) + (1 * R) + (c * X)`
-        //If g^s == RX^c then we have valid signature.
-
-        R.compress() == signature.R
-       
-    }
-
-    /// Verify a signature by this public key on a message.
-    pub fn verify_simple(&self, ctx: &'static [u8], msg: &[u8], signature: &Signature) -> bool {
-        let mut t = Transcript::new(ctx);
-        t.append_message(b"sign-bytes", msg);
-        self.verify(t, signature)
-    }
-}
-
-impl Keypair {
+    
     /// Sign a transcript with this keypair's secret key.
     ///
     /// Requires a `SigningTranscript`, normally created from a
@@ -283,26 +149,66 @@ impl Keypair {
     /// # let message: &[u8] = b"All I want is to pet all of the dogs.";
     /// # let prehashed = ::blake2::Blake2b::default().chain(message);
     /// #
-    /// let ctx = SigningContext::new(b"My Signing Context");
+    /// let mut ctx = SigningContext::new(b"My Signing Context");
     ///
-    /// let sig: Signature = keypair.sign(ctx.from_hash512(prehashed));
+    /// let sig: Signature = Signature::sign(&mut ctx.from_hash512(prehashed), &keypair.secret, &keypair.public);
     /// # }
     /// #
     /// # #[cfg(any(not(feature = "std")))]
     /// # fn main() { }
     /// ```
     ///
-    // lol  [terrible_idea]: https://github.com/isislovecruft/scripts/blob/master/gpgkey2bc.py
-    pub fn sign(&self, t: Transcript) -> Signature {
-        self.secret.sign(t, &self.public)
-    }
+    /// Sign a transcript with this `SecretKey`.
+    ///
+    /// Requires a `SigningTranscript`, normally created from a
+    /// `SigningContext` and a message, as well as the public key
+    /// correspodning to `self`.  Returns a Schnorr signature.
+    ///
+    /// We employ a randomized nonce here, but also incorporate the
+    /// transcript like in a derandomized scheme, but only after first
+    /// extending the transcript by the public key.  As a result, there
+    /// should be no attacks even if both the random number generator
+    /// fails and the function gets called with the wrong public key.
+    // Sign a message with this `SecretKey`.
+    pub fn sign(transcript: &mut Transcript, secret_key: &SecretKey) -> Signature {
+        //The message `m` has already been fed into the transcript
+        let public_key = PublicKey::from_secret(secret_key);
+        
+        //randomize transcrip and commit private key
+        let mut rng = transcript
+            .build_rng()
+            .rekey_with_witness_bytes(b"secret_key", &secret_key.to_bytes()) 
+            .finalize(&mut rand::thread_rng());
 
-    /// Sign a message with this keypair's secret key.
-    pub fn sign_simple(&self, ctx: &'static [u8], msg: &[u8]) -> Signature
-    {
-        self.secret.sign_simple(ctx, msg, &self.public)
-    }
+        // Generate ephemeral keypair (r, R). r is a random nonce.
+        let mut r: Scalar = Scalar::random(&mut rng);
 
+        // R = generator * r, commiment to nonce
+        let _r: CompressedRistretto = (&r * &RISTRETTO_BASEPOINT_TABLE).compress();
+
+       
+        //Acts as the hash commitment for message, nonce commitment & pubkey
+        let c = {
+            //domain seperration
+            transcript.proto_name(b"schnorr_sig");
+            //commit corresponding public key
+            transcript.commit_point(b"public_key", public_key.as_compressed());
+            //commit to our nonce
+            transcript.commit_point(b"R", &_r);
+            //sample challenge
+            transcript.challenge_scalar(b"c")
+        };
+
+
+        //compute the signature, s = r + cx
+        let s = &r + &(&c * secret_key.as_scalar());  
+
+        //zero out secret r
+        mohan::zeroize_hack(&mut r);
+
+        Signature { R: _r, s: s }
+    }
+    
     /// Verify a signature by keypair's public key on a transcript.
     ///
     /// Requires a `SigningTranscript`, normally created from a
@@ -323,290 +229,198 @@ impl Keypair {
     /// let keypair: Keypair = Keypair::generate(&mut csprng);
     /// let message: &[u8] = b"All I want is to pet all of the dogs.";
     ///
-    /// let ctx = SigningContext::new(b"Some context string");
+    /// let mut ctx = SigningContext::new(b"Some context string");
     ///
-    /// let sig: Signature = keypair.sign(ctx.bytes(message));
+    /// let sig: Signature = Signature::sign(&mut ctx.bytes(message), &keypair.secret);
     ///
-    /// assert!( keypair.public.verify(ctx.bytes(message), &sig) );
+    /// assert!( sig.verify(&mut ctx.bytes(message), &keypair.public).is_ok() );
     /// # }
     /// ```
-    pub fn verify(&self, t: Transcript, signature: &Signature) -> bool {
-        self.public.verify(t, signature)
-    }
+    /// Verify a signature on a message with this keypair's public key.
+    ///
+    /// # Return
+    ///
+    /// Returns `Ok(())` if the signature is valid, and `Err` otherwise.
+    #[allow(non_snake_case)]
+    pub fn verify(&self, transcript: &mut Transcript, public_key: &PublicKey) -> Result<(), SchnorrError> {
+        SingleVerifier::verify(
+            |verifier| 
+                self.verify_batched(
+                    transcript, 
+                    public_key, 
+                    verifier
+                )
+        )
+        // //set the domain
+        // transcript.proto_name(b"schnorr_sig");
 
-    /// Verify a signature by keypair's public key on a message.
-    pub fn verify_simple(&self, ctx: &'static [u8], msg: &[u8], signature: &Signature) -> bool {
-        self.public.verify_simple(ctx, msg, signature)
-    }
-}
-
-
-/// Verify a batch of `signatures` on `messages` with their respective `public_keys`.
-///
-/// # Inputs
-///
-/// * `messages` is a slice of byte slices, one per signed message.
-/// * `signatures` is a slice of `Signature`s.
-/// * `public_keys` is a slice of `PublicKey`s.
-/// * `csprng` is an implementation of `Rng + CryptoRng`, such as `rand::ThreadRng`.
-///
-/// # Panics
-///
-/// This function will panic if the `messages, `signatures`, and `public_keys`
-/// slices are not equal length.
-///
-/// # Returns
-///
-/// * A `Result` whose `Ok` value is an emtpy tuple and whose `Err` value is a
-///   `SignatureError` containing a description of the internal error which
-///   occured.
-///
-/// # Examples
-///
-/// ```
-/// extern crate schnorr;
-/// extern crate rand;
-/// extern crate bacteria;
-///
-/// use schnorr::*;
-/// use rand::thread_rng;
-/// use rand::rngs::ThreadRng;
-/// use bacteria::Transcript;
-///
-/// # fn main() {
-///
-/// let ctx = SigningContext::new(b"some batch");
-/// let mut csprng: ThreadRng = thread_rng();
-/// let keypairs: Vec<Keypair> = (0..64).map(|_| Keypair::generate(&mut csprng)).collect();
-/// let msg: &[u8] = b"They're good dogs Brant";
-/// let signatures:  Vec<Signature> = keypairs.iter().map(|key| key.sign(ctx.bytes(&msg))).collect();
-/// let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
-///
-/// let transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(64).collect();;
-///
-/// assert!( verify_batch(&transcripts[..], &signatures[..], &public_keys[..]).is_ok() );
-/// # }
-/// ```
-#[allow(non_snake_case)]
-pub fn verify_batch(
-    transcripts: &[Transcript], 
-    signatures: &[Signature], 
-    public_keys: &[PublicKey]
-) -> Result<(), SchnorrError>{
-
-    // The message `m` has already been fed into the transcripts
-
-    const ASSERT_MESSAGE: &'static str = "The number of messages/transcripts, signatures, and public keys must be equal.";
-     
-    // Check transcripts length below
-    if !signatures.len() == public_keys.len() && !transcripts.len() == public_keys.len() {
-            return Err(SchnorrError::BytesLengthError{
-                name: "Verify Batch",  
-                description: ASSERT_MESSAGE, 
-                length: 0 
-            });
-    }
-
-    // Get the total number of points in batch
-    let dyn_length: usize = signatures.len();
-    let length = 2 + dyn_length; // include the (B, B_blinding) pair
-
-    let mut weights: Vec<Scalar> = Vec::with_capacity(length);
-    let mut points: Vec<Option<RistrettoPoint>> = Vec::with_capacity(length);
-
-    // Add base points
-    points.push(Some(RISTRETTO_BASEPOINT_POINT));
-    weights.push(Scalar::zero());
-
-    let mut rng = rand::prelude::thread_rng();
-
-    // Iterate over every point, adding both weights and points to
-    // our arrays
-    for i in 0..transcripts.len() {
-        // Select a random Scalar for each signature.
-        // We may represent these as scalars because we use
-        // variable time 256 bit multiplication below. 
-        let e = Scalar::random(&mut rng);
+        // // Make c = H(X, R, m)
+        // // The message `m` has already been fed into the transcript
+        // transcript.commit_point(b"public_key", public_key.as_compressed());
+        // transcript.commit_point(b"R", &signature.R);
+       
+        // let c: Scalar = transcript.challenge_scalar(b"c");
+        // let A: &RistrettoPoint = public_key.as_point();
+        // let R: RistrettoPoint = RistrettoPoint::vartime_double_scalar_mul_basepoint(&c, &(-A), &signature.s);
         
-        // Compute the basepoint coefficient, running summation
-        weights[0] = weights[0] + e * -signatures[i].s;
+        // // Validate the final linear combination:
+        // // `s * G = R + c * X`
+        // //      ->
+        // // `0 == (-s * G) + (1 * R) + (c * X)`
+        // //If g^s == RX^c then we have valid signature.
+        // R.compress() == signature.R  
+    }
 
-        //derive challenge scalar, c = H(X, R, m)
+
+    /// Verify a batch of `signatures` on `messages` with their respective `public_keys`.
+    ///
+    /// # Inputs
+    ///
+    /// * `messages` is a slice of byte slices, one per signed message.
+    /// * `transcript` is a slice of `Signature`s. They need messages fed in before and discarded after
+    /// * `signatures` is a slice of `Signature`s.
+    /// * `public_keys` is a slice of `PublicKey`s.
+    /// * `csprng` is an implementation of `Rng + CryptoRng`, such as `rand::ThreadRng`.
+    /// 
+    /// # Panics
+    ///
+    /// This function will panic if the `messages, `signatures`, and `public_keys`
+    /// slices are not equal length.
+    ///
+    /// # Returns
+    ///
+    /// * A `Result` whose `Ok` value is an emtpy tuple and whose `Err` value is a
+    ///   `SignatureError` containing a description of the internal error which
+    ///   occured.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// extern crate schnorr;
+    /// extern crate rand;
+    /// extern crate bacteria;
+    ///
+    /// use schnorr::*;
+    /// use rand::thread_rng;
+    /// use rand::rngs::ThreadRng;
+    /// use bacteria::Transcript;
+    ///
+    /// # fn main() {
+    ///
+    /// let ctx = SigningContext::new(b"some batch");
+    /// let mut csprng: ThreadRng = thread_rng();
+    /// let keypairs: Vec<Keypair> = (0..64).map(|_| Keypair::generate(&mut csprng)).collect();
+    /// let msg: &[u8] = b"They're good dogs Brant"; 
+    /// let signatures:  Vec<Signature> = keypairs.iter().map(|key| Signature::sign(&mut ctx.bytes(&msg), &key.secret)).collect();
+    /// let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
+    /// let mut batch = BatchVerifier::new(rand::thread_rng());
+    ///
+    /// let mut transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(64).collect();;
+    /// for i in 0..signatures.len() {
+    ///      signatures[i].verify_batched(&mut transcripts[i], &public_keys[i], &mut batch);
+    /// }
+    /// 
+    /// assert!(batch.verify().is_ok());
+    /// # }
+    /// ```
+    #[allow(non_snake_case)]
+    pub fn verify_batched(
+        &self,
+        transcript: &mut Transcript,  
+        public_key: &PublicKey,
+        batch: &mut impl BatchVerification,
+    ) {
+
+        // // The message `m` has already been fed into the transcripts        
+        // // Check transcripts length below
+        // if !signatures.len() == public_keys.len() && !transcripts.len() == public_keys.len() {
+        //         return Err(SchnorrError::BadArguments);
+        // }
+
+        // // Get the total number of points in batch
+        // let dyn_length: usize = signatures.len();
+        // let length = 2 + dyn_length; // include the (B, B_blinding) pair
+
+        // let mut weights: Vec<Scalar> = Vec::with_capacity(length);
+        // let mut points: Vec<Option<RistrettoPoint>> = Vec::with_capacity(length);
+
+        // // Add base points
+        // points.push(Some(RISTRETTO_BASEPOINT_POINT));
+        // weights.push(Scalar::zero());
+
+        // // Use a random number generator keyed by both the public keys,
+        // // and the system random number generator 
+        // let mut csprng = {
+        //     let mut t = Transcript::new(b"V-RNG");
+        //     for pk in public_keys {
+        //         t.commit_point(b"",pk.as_compressed());
+        //     }
+        //     t.build_rng().finalize(&mut rand::prelude::thread_rng())
+        // };
+
+        // Iterate over every point, adding both weights and points to
+        // our arrays
+        // for i in 0..transcripts.len() {
+        //     // Select a random Scalar for each signature.
+        //     // We may represent these as scalars because we use
+        //     // variable time 256 bit multiplication below. 
+        //     let e = Scalar::random(&mut csprng);
+            
+        //     // Compute the basepoint coefficient, running summation
+        //     weights[0] = weights[0] + e * -signatures[i].s;
+
+        //     //derive challenge scalar, c = H(X, R, m)
+        //     let c = {
+        //         transcripts[i].proto_name(b"schnorr_sig");
+        //         transcripts[i].commit_point(b"public_key", public_keys[i].as_compressed());
+        //         transcripts[i].commit_point(b"R", &signatures[i].R);
+        //         transcripts[i].challenge_scalar(b"c") 
+        //     };
+
+        //     // Add weights and points for arbitrary points
+        //     weights.push(Scalar::one() * e);
+        //     weights.push(c * e);
+
+        //     points.push(signatures[i].R.decompress());
+        //     //Decompress verification key P. If this fails, return Err(VMError::InvalidPoint).
+        //     points.push(Some(public_keys[i].into_point()));
+        // }
+
+        // Derive challenge scalar, c = H(X, R, m)
+        // The message has already been fed into the transcript
         let c = {
-            let mut t = transcripts[i].borrow().clone(); //TODO is this clone cheap?
-            t.proto_name(b"Schnorr_sig");
-            t.commit_point(b"public_key", public_keys[i].as_compressed());
-            t.commit_point(b"R", &signatures[i].R);
-            t.challenge_scalar(b"c") 
+            transcript.proto_name(b"schnorr_sig");
+            transcript.commit_point(b"public_key", public_key.as_compressed());
+            transcript.commit_point(b"R", &self.R);
+            transcript.challenge_scalar(b"c") 
         };
 
-        // Add weights and points for arbitrary points
-        weights.push(Scalar::one() * e);
-        weights.push(c * e);
+        // // Form the final linear combination:
+        // // `s * G = R + c * X`
+        // //      ->
+        // // `0 == (-s * G) + (1 * R) + (c * X)`
+        // // G is the base point.
+        // let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
+        //         .ok_or(SchnorrError::VerifyError)?;
 
-        points.push(signatures[i].R.decompress());
-        //Decompress verification key P. If this fails, return Err(VMError::InvalidPoint).
-        points.push(Some(public_keys[i].into_point()));
-    }
-
-    // Form the final linear combination:
-    // `s * G = R + c * X`
-    //      ->
-    // `0 == (-s * G) + (1 * R) + (c * X)`
-    // G is the base point.
-    let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError::VerifyError)?;
-
-    // We need not return SigenatureError::PointDecompressionError because
-    // the decompression failures occur for R represent invalid signatures.
-    if !check.is_identity() {
-        return Err(SchnorrError::VerifyError);
-    }
-    
-    Ok(())
-}
-
-
-/// Creates a signature for multiple private keys and multiple messages
-pub fn sign_multi(
-    transcript: &mut Transcript, 
-    keys: &[&SecretKey], 
-    messages: &[(&PublicKey, &[u8])]
-) -> Result<Signature, SchnorrError> {
-
-    if messages.len() != keys.len() {
-            return Err(
-                SchnorrError::MuSig { 
-                    kind: MuSigError::TooManyParticipants 
-                }
-
-            );
-    }
-    
-    if keys.len() == 0 {
-        return Err(SchnorrError::BadArguments);
-    }
-
-    //set the domain
-    transcript.proto_name(b"Schnorr_musig");
-
-    //randomize transcrip and commit private key
-    let mut rng = transcript
-        .build_rng()
-        // Use one key that has enough entropy to seed the RNG.
-        // We can call unwrap because we know that the privkeys length is > 0
-        .rekey_with_witness_bytes(b"secret_key", keys[0].as_bytes())
-        .finalize(&mut rand::thread_rng());
-
-    
-    // Generate ephemeral keypair (r, R). r is a random nonce.
-    let r: Scalar = Scalar::random(&mut rng);
-
-    // R = generator * r, commiment to nonce
-    let _r: CompressedRistretto = (&r * &RISTRETTO_BASEPOINT_TABLE).compress();
-
-
-    // Commit the context, and commit the nonce sum with label "R"
-    transcript.append_u64(b"Multimessage_len", messages.len() as u64);
-
-    for (key, msg) in messages {
-            transcript.commit_point(b"public_key", key.as_compressed());
-            transcript.append_message(b"message", msg.as_ref());
-    }
-
-    //commit to our nonce
-    transcript.commit_point(b"R", &_r);
-    
-    //compute the signature, s = r + sum{c_i * x_i}
-    let mut s = r;
-    for i in 0..keys.len() {
-        let mut transcript_i = transcript.clone();
-        //This prevents later steps from being able to get the same challenges that come from the forked transcript.
-        transcript_i.append_message(b"dom-sep", b"multi_message_boundary");
-        //The index i is the index of pair of the key it matches to.
-        transcript_i.append_u64(b"i", i as u64);
-        //Acts as the hash commitment for message, nonce commitment & pubkey
-        let c: Scalar = transcript_i.challenge_scalar(b"c");
-
-        s = s + c * keys[i].as_scalar();
-    }
-
-    Ok(Signature { R: _r, s: s })
-}
-
-pub fn verify_multi(
-    transcript: &mut Transcript, 
-    signature: &Signature, 
-    messages: &[(&PublicKey, &[u8])]
-) -> Result<(), SchnorrError> {
-
-    //set the domain
-    transcript.proto_name(b"Schnorr_musig");
-
-    // Commit the context, and commit the nonce sum with label "R"
-    transcript.append_u64(b"Multimessage_len", messages.len() as u64);
-
-    for (key, msg) in messages {
-            transcript.commit_point(b"public_key", key.as_compressed());
-            transcript.append_message(b"message", msg.as_ref());
-    }
-
-    transcript.commit_point(b"R", &signature.R);
-
-    // Form the final linear combination:
-    // `s * G = R + sum{c_i * X_i}`
-    //      ->
-    // `0 == (-s * G) + (1 * R) + sum{c_i * X_i}`
-
-    // Get the total number of points in batch
-    let dyn_length: usize = messages.len();
-    let length = 1 + dyn_length; // include the (B, B_blinding) pair
-
-    let mut weights: Vec<Scalar> = Vec::with_capacity(length);
-    let mut points: Vec<Option<RistrettoPoint>> = Vec::with_capacity(length);
-
-    // (1 * R)
-    points.push(signature.R.decompress());
-    weights.push(Scalar::one());
-
-    //(-s * G)
-    weights.push(-signature.s);
-    points.push(Some(RISTRETTO_BASEPOINT_POINT));
-
-
-    for i in 0..messages.len() {
+        // // We need not return SigenatureError::PointDecompressionError because
+        // // the decompression failures occur for R represent invalid signatures.
+        // if !check.is_identity() {
+        //     return Err(SchnorrError::VerifyError);
+        // }
         
-        let c = {
-            let mut t = transcript.clone(); //TODO is this clone cheap?
-          
-            //This prevents later steps from being able to get the same challenges that come from the forked transcript.
-            t.append_message(b"dom-sep", b"multi_message_boundary");
-            //The index i is the index of pair of the key it matches to.
-            t.append_u64(b"i", i as u64);
-            //get the per-pubkey challenge c_i.
-            //Acts as the hash commitment for message, nonce commitment & pubkey
-            t.challenge_scalar(b"c")
-        };
-
-        //sum_i(X_i * c_i) into cX.
-        weights.push(c);
-
-        //Decompress verification key P. If this fails, return Err(VMError::InvalidPoint).
-        points.push(Some(messages[i].0.into_point()));
-
+        // Ok(())
+        // Form the final linear combination:
+        // `s * G = R + c * X`
+        //      ->
+        // `0 == (-s * G) + (1 * R) + (c * X)`
+        batch.append(
+            -self.s,
+            iter::once(Scalar::one()).chain(iter::once(c)),
+            iter::once(self.R.decompress()).chain(iter::once(Some(public_key.into_point()))),
+        );
     }
 
-    //Check if s * G == cX + R. G is the base point.
-    let check = RistrettoPoint::optional_multiscalar_mul(weights, points)
-            .ok_or(SchnorrError::VerifyError)?;
-
-    // We need not return SigenatureError::PointDecompressionError because
-    // the decompression failures occur for R represent invalid signatures.
-    if !check.is_identity() {
-        return Err(SchnorrError::VerifyError);
-    }
-
-    Ok(())
 }
 
 
@@ -623,10 +437,9 @@ mod test {
         PublicKey,
         SecretKey,
         Signature,
-        SigningContext,
-        sign_multi,
-        verify_multi,
-        verify_batch
+        tools::SigningContext,
+        BatchVerification,
+        BatchVerifier
     };
 
     #[test]
@@ -638,11 +451,11 @@ mod test {
         csprng  = ChaChaRng::from_seed([0u8; 32]);
         keypair  = Keypair::generate(&mut csprng);
 
-        let sig = keypair.sign(Transcript::new(b"example transcript"));
+        let sig = Signature::sign(&mut Transcript::new(b"example transcript"), &keypair.secret);
 
-        assert!(keypair.verify(Transcript::new(b"example transcript"), &sig));
+        assert!(sig.verify(&mut Transcript::new(b"example transcript"), &keypair.public).is_ok());
 
-        assert!(!keypair.verify(Transcript::new(b"invalid transcript"), &sig));
+        assert!(sig.verify(&mut Transcript::new(b"invalid transcript"), &keypair.public).is_err());
 
     }
 
@@ -652,24 +465,22 @@ mod test {
         let keypair: Keypair;
         let good_sig: Signature;
         let bad_sig:  Signature;
-
-        let ctx = SigningContext::new(b"good");
         
-        let good: &[u8] = "test message".as_bytes();
-        let bad:  &[u8] = "wrong message".as_bytes();
+        let good = Transcript::new(b"test message");
+        let bad = Transcript::new(b"wrong message");
 
         csprng  = ChaChaRng::from_seed([0u8; 32]);
         keypair  = Keypair::generate(&mut csprng);
-        good_sig = keypair.sign(ctx.bytes(&good));
-        bad_sig  = keypair.sign(ctx.bytes(&bad));
+        good_sig = Signature::sign(&mut good.clone(), &keypair.secret);
+        bad_sig  = Signature::sign(&mut bad.clone(), &keypair.secret);
 
-        assert!(keypair.verify(ctx.bytes(&good), &good_sig),
+        assert!(good_sig.verify(&mut good.clone(), &keypair.public).is_ok(), 
                 "Verification of a valid signature failed!");
-        assert!(!keypair.verify(ctx.bytes(&good), &bad_sig),
+        assert!(bad_sig.verify(&mut good.clone(), &keypair.public).is_err(),
                 "Verification of a signature on a different message passed!");
-        assert!(!keypair.verify(ctx.bytes(&bad),  &good_sig),
+        assert!(good_sig.verify(&mut bad.clone(), &keypair.public).is_err(),
                 "Verification of a signature on a different message passed!");
-        assert!(!keypair.verify(SigningContext::new(b"bad").bytes(&good),  &good_sig),
+        assert!(bad_sig.verify(&mut bad.clone(), &keypair.public).is_ok(),
                 "Verification of a signature on a different message passed!");
     }
 
@@ -691,17 +502,17 @@ mod test {
 
         csprng   = ChaChaRng::from_seed([0u8; 32]);
         keypair  = Keypair::generate(&mut csprng);
-        good_sig = keypair.sign(ctx.from_hash512(prehashed_good.clone()));
-        bad_sig  = keypair.sign(ctx.from_hash512(prehashed_bad.clone()));
+        good_sig = Signature::sign(&mut ctx.from_hash512(prehashed_good.clone()), &keypair.secret);
+        bad_sig  = Signature::sign(&mut ctx.from_hash512(prehashed_bad.clone()), &keypair.secret);
 
-        assert!(keypair.verify(ctx.from_hash512(prehashed_good.clone()), &good_sig),
+        assert!(good_sig.verify(&mut ctx.from_hash512(prehashed_good.clone()), &keypair.public).is_ok(), 
                 "Verification of a valid signature failed!");
-        assert!(! keypair.verify(ctx.from_hash512(prehashed_good.clone()), &bad_sig),
-                "Verification of a signature on a different message passed!");
-        assert!(! keypair.verify(ctx.from_hash512(prehashed_bad.clone()), &good_sig),
-                "Verification of a signature on a different message passed!");
-        assert!(! keypair.verify(SigningContext::new(b"oops").from_hash512(prehashed_good), &good_sig),
-                "Verification of a signature on a different message passed!");
+        assert!(bad_sig.verify(&mut ctx.from_hash512(prehashed_good.clone()), &keypair.public).is_err(), 
+                "Verification of a valid signature failed!");
+        assert!(good_sig.verify(&mut ctx.from_hash512(prehashed_bad.clone()), &keypair.public).is_err(), 
+                "Verification of a valid signature failed!");
+        assert!(good_sig.verify(&mut SigningContext::new(b"oops").from_hash512(prehashed_good), &keypair.public).is_err(), 
+                "Verification of a valid signature failed!");
     }
 
     #[test]
@@ -724,49 +535,59 @@ mod test {
 
         for i in 0..messages.len() {
             let keypair: Keypair = Keypair::generate(&mut csprng);
-            signatures.push(keypair.sign(ctx.bytes(messages[i])));
+            signatures.push(
+                Signature::sign(&mut ctx.bytes(messages[i]), &keypair.secret)
+            );
             keypairs.push(keypair);
         }
 
         let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
-        let transcripts: Vec<Transcript> = messages.iter().map(|m| ctx.bytes(m)).collect();
-        
-        assert!(verify_batch(&transcripts[..], &signatures[..], &public_keys[..]).is_ok());
+        let mut transcripts: Vec<Transcript> = messages.iter().map(|m| ctx.bytes(m)).collect();
+
+        let mut batch = BatchVerifier::new(rand::thread_rng());
+
+        for i in 0..signatures.len() {
+            signatures[i].verify_batched(&mut transcripts[i], &public_keys[i], &mut batch);
+        }
+
+        assert!(batch.verify().is_ok());
     }
 
     #[test]
-    fn verify_multimessage_singleplayer() {
-        let messages = vec![b"message1", b"message2", b"message3", b"message4"];
-        let ctx = Transcript::new(b"my multi message context");
+    fn verify_batch_seven_signatures_bad() {
+        
+        let ctx = SigningContext::new(b"my batch context");
+
+        let messages: [&[u8]; 7] = [
+            b"Watch closely everyone, I'm going to show you how to kill a god.",
+            b"I'm not a cryptographer I just encrypt a lot.",
+            b"Still not a cryptographer.",
+            b"This is a test of the tsunami alert system. This is only a test.",
+            b"Fuck dumbin' it down, spit ice, skip jewellery: Molotov cocktails on me like accessories.",
+            b"Hey, I never cared about your bucks, so if I run up with a mask on, probably got a gas can too.",
+            b"And I'm not here to fill 'er up. Nope, we came to riot, here to incite, we don't want any of your stuff.", ];
+
         let mut csprng: ThreadRng = thread_rng();
         let mut keypairs: Vec<Keypair> = Vec::new();
-        let mut pairs: Vec<(&PublicKey, &[u8])> = Vec::new();
-        let mut priv_keys: Vec<&SecretKey> = Vec::new();
+        let mut signatures: Vec<Signature> = Vec::new();
 
-        for _i in 0..messages.len() {
+        for i in 0..messages.len() {
             let keypair: Keypair = Keypair::generate(&mut csprng);
+            signatures.push(
+                Signature::sign(&mut ctx.bytes(messages[i]), &keypair.secret)
+            );
             keypairs.push(keypair);
         }
 
-        for i in 0..keypairs.len() {
-            pairs.push((&keypairs[i].public, messages[i]));
-            priv_keys.push(&keypairs[i].secret);
+        let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
+        let mut transcripts: Vec<Transcript> = messages.iter().map(|m| ctx.bytes(m)).collect();
+
+        let mut batch = BatchVerifier::new(rand::thread_rng());
+
+        for i in 0..signatures.len() {
+            signatures[i].verify_batched(&mut &mut Transcript::new(b"bad transcript"), &public_keys[i], &mut batch);
         }
 
-
-        let signature = sign_multi(
-            &mut ctx.to_owned(),
-            priv_keys.as_slice(),
-            pairs.as_slice(),
-        ).unwrap();
-
-
-        assert!(verify_multi(
-                &mut ctx.to_owned(),
-                &signature, 
-                pairs.as_slice()
-            ).is_ok());
+        assert!(batch.verify().is_err());
     }
-
-  
 }

@@ -57,9 +57,9 @@ impl Drop for Keypair {
 
 impl Keypair {
     
-    const DESCRIPTION : &'static str = "An Schnorr keypair, 64 bytes in total where the secret key is \
-                                     the first 32 bytes and the second \
-                                     32 bytes is a compressed point for a public key.";
+    // const DESCRIPTION : &'static str = "An Schnorr keypair, 64 bytes in total where the secret key is \
+    //                                  the first 32 bytes and the second \
+    //                                  32 bytes is a compressed point for a public key.";
 
     // /// Convert this keypair to bytes.
     // ///

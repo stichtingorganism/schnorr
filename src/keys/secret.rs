@@ -21,8 +21,8 @@ use mohan::{
     dalek::scalar::Scalar,
     ser
 };
-use crate::SchnorrError;
 use zeroize::Zeroize;
+use crate::SchnorrError;
 
 /// The length of a curve25519 Schnorr `SecretKey`, in bytes.
 pub const SECRET_KEY_LENGTH: usize = 32;
@@ -66,9 +66,7 @@ impl Drop for SecretKey {
 }
 
 impl SecretKey {
-
-    const DESCRIPTION : &'static str = "A Schnorr secret key as 32 bytes.";
-
+   
     /// Convert this secret key to a byte array.
     #[inline]
     pub fn to_bytes(&self) -> [u8; SECRET_KEY_LENGTH] {
@@ -115,13 +113,8 @@ impl SecretKey {
     #[inline]
     pub fn from_bytes(bytes: &[u8]) -> Result<SecretKey, SchnorrError> {
         if bytes.len() != SECRET_KEY_LENGTH {
-            return Err(SchnorrError::BytesLengthError{
-                name: "SecretKey",  
-                description: SecretKey::DESCRIPTION, 
-                length: SECRET_KEY_LENGTH 
-            });
+            return Err(SchnorrError::SerError);
         }
-
 
         let mut bits: [u8; 32] = [0u8; 32];
         bits.copy_from_slice(&bytes[..32]);
@@ -212,3 +205,10 @@ impl ser::Readable for SecretKey {
 	}
 }
 
+
+impl std::borrow::Borrow<Scalar> for SecretKey {
+    #[inline]
+    fn borrow(&self) -> &Scalar {
+        self.as_scalar()
+    }
+}
