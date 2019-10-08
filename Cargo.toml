@@ -1,6 +1,6 @@
 [package]
 name = "schnorr"
-version = "0.0.9"
+version = "0.0.10"
 description = "Schnorr Signatures"
 authors = ["hello@organism.org"]
 license = "Apache-2.0"
@@ -17,7 +17,7 @@ rand_chacha = "0.1.0"
 failure = "0.1"
 subtle = { version = "2.0.0", features = ["nightly"] }
 bacteria = "0.0.6"
-mohan = "0.0.25"
+mohan = "0.0.*"
 zeroize = { version = "1.0.0-pre", features = ["zeroize_derive"] }
 
 [dev-dependencies]
