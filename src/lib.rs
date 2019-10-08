@@ -87,3 +87,14 @@ pub use signer::{
 #[cfg(test)]
 mod musig_test;
 
+// use rand_core::{RngCore,CryptoRng};
+
+// #[cfg(all(feature = "rand_os", feature = "rand"))] 
+// fn rand_hack() -> impl RngCore+CryptoRng {
+//     ::rand::thread_rng()
+// }
+
+// #[cfg(all(feature = "rand_os", not(feature = "rand")))] 
+// fn rand_hack() -> impl RngCore+CryptoRng {
+//     ::rand_os::OsRng::new().unwrap()
+// }

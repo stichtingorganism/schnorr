@@ -171,10 +171,10 @@ impl Signature {
     /// fails and the function gets called with the wrong public key.
     // Sign a message with this `SecretKey`.
     pub fn sign(transcript: &mut Transcript, secret_key: &SecretKey) -> Signature {
-        //The message `m` has already been fed into the transcript
+        // The message `m` has already been fed into the transcript
         let public_key = PublicKey::from_secret(secret_key);
-        
-        //randomize transcrip and commit private key
+
+        //randomize transcript and commit private key
         let mut rng = transcript
             .build_rng()
             .rekey_with_witness_bytes(b"secret_key", &secret_key.to_bytes()) 
@@ -189,8 +189,8 @@ impl Signature {
        
         //Acts as the hash commitment for message, nonce commitment & pubkey
         let c = {
-            //domain seperration
-            transcript.proto_name(b"schnorr_sig");
+            // Domain seperation
+            transcript.proto_name(b"organism_schnorr");
             //commit corresponding public key
             transcript.commit_point(b"public_key", public_key.as_compressed());
             //commit to our nonce
@@ -386,10 +386,14 @@ impl Signature {
         //     points.push(Some(public_keys[i].into_point()));
         // }
 
+         
+        
+
         // Derive challenge scalar, c = H(X, R, m)
         // The message has already been fed into the transcript
         let c = {
-            transcript.proto_name(b"schnorr_sig");
+            // Domain seperation
+            transcript.proto_name(b"organism_schnorr");
             transcript.commit_point(b"public_key", public_key.as_compressed());
             transcript.commit_point(b"R", &self.R);
             transcript.challenge_scalar(b"c") 

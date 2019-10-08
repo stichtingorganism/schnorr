@@ -89,8 +89,8 @@ impl MultiKey {
 impl MuSigContext for MultiKey {
 
     fn commit(&self, transcript: &mut Transcript) {
-        //domain seperration
-        transcript.proto_name(b"schnorr_sig");
+        // Domain seperation
+        transcript.proto_name(b"organism_schnorr");
         //commit corresponding public key
         transcript.commit_point(b"public_key", self.aggregated_key.as_compressed());
     }
