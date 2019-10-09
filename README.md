@@ -1,4 +1,4 @@
-# Schnorr  [![](https://img.shields.io/crates/v/schnorr.svg)](https://crates.io/crates/schnorr) [![](https://docs.rs/schnorr/badge.svg)](https://docs.rs/schnorr)
+# Schnorr  [![](https://img.shields.io/crates/v/schnorr.svg)](https://crates.io/crates/schnorr) [![](https://docs.rs/schnorr/badge.svg)](https://docs.rs/schnorr) [![Gitter](https://badges.gitter.im/stichtingorganism/community.svg)](https://gitter.im/stichtingorganism/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 A Rust implementation of Schnorr key generation, signing, verification, & multi-signatures.
 Furthermore key derivation functionality is supported.
