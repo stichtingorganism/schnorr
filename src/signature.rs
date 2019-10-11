@@ -178,7 +178,7 @@ impl Signature {
         let mut rng = transcript
             .build_rng()
             .rekey_with_witness_bytes(b"secret_key", &secret_key.to_bytes()) 
-            .finalize(&mut rand::thread_rng());
+            .finalize(&mut mohan::mohan_rand());
 
         // Generate ephemeral keypair (r, R). r is a random nonce.
         let mut r: Scalar = Scalar::random(&mut rng);

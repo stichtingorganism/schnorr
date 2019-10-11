@@ -16,7 +16,7 @@
 //! Schnorr Secret Key & Extended Secret Key generation 
 use std::fmt::{Debug};
 use subtle::{Choice, ConstantTimeEq};
-use rand::{Rng, CryptoRng};
+use rand::{RngCore, CryptoRng};
 use mohan::{
     dalek::scalar::Scalar,
     ser
@@ -156,7 +156,7 @@ impl SecretKey {
     /// # fn main() {
     /// #
     /// # use rand::Rng;
-    /// # use rand::ChaChaRng;
+    /// # use rand_chacha::ChaChaRng;
     /// # use rand::SeedableRng;
     /// # use schnorr::*;
     /// #
@@ -172,7 +172,7 @@ impl SecretKey {
     ///
     /// A CSPRNG with a `fill_bytes()` method, e.g. `rand::ChaChaRng`
     pub fn generate<T>(csprng: &mut T) -> SecretKey
-        where T: CryptoRng + Rng,
+        where T: CryptoRng + RngCore,
     {
         SecretKey(Scalar::random(csprng))
     }

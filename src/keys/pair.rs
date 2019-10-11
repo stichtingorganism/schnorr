@@ -15,7 +15,7 @@
 
 //! A Rust implementation of Schnorr key generation, 
 
-use rand::{Rng, CryptoRng};
+use rand::{RngCore, CryptoRng};
 use crate::SchnorrError;
 use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
 use zeroize::Zeroize;
@@ -120,10 +120,10 @@ impl Keypair {
     /// # fn main() {
     ///
     /// use rand::Rng;
-    /// use rand::OsRng;
+    /// use rand::rngs::OsRng;
     /// use schnorr::*;
     ///
-    /// let mut csprng: OsRng = OsRng::new().unwrap();
+    /// let mut csprng: OsRng = OsRng;
     /// let keypair: Keypair = Keypair::generate(&mut csprng);
     ///
     /// # }
@@ -137,7 +137,7 @@ impl Keypair {
     /// `Digest` and `Default` traits, and which returns 512 bits of output.
     /// The standard hash function used is Blake2b-512,
     pub fn generate<R>(csprng: &mut R) -> Keypair
-        where R: CryptoRng + Rng,
+        where R: CryptoRng + RngCore,
     {
         let sk: SecretKey = SecretKey::generate(csprng);
         let pk: PublicKey = PublicKey::from_secret(&sk);
