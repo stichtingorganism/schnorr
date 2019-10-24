@@ -5,9 +5,12 @@ Furthermore key derivation functionality is supported.
 
 This library aims to be a backbone for many different use cases but we focus on the Public Network needs.
 
-A Multi Signature Protocol is also provided.
+Todo:
+    - Threshold Signatures
+    - Serde Support
+    - Adaptor Signatures
 
-
+    
 **Disclaimers**: 
 
 (1) This code should not be used for production at the moment.
