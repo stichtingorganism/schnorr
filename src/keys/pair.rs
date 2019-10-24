@@ -53,57 +53,50 @@ impl Drop for Keypair {
 }
 
 impl Keypair {
-    // const DESCRIPTION : &'static str = "An Schnorr keypair, 64 bytes in total where the secret key is \
-    //                                  the first 32 bytes and the second \
-    //                                  32 bytes is a compressed point for a public key.";
 
-    // /// Convert this keypair to bytes.
-    // ///
-    // /// # Returns
-    // ///
-    // /// An array of bytes, `[u8; KEYPAIR_LENGTH]`.  The first
-    // /// `SECRET_KEY_LENGTH` of bytes is the `SecretKey`, and the next
-    // /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey`
-    // pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
-    //     let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
+    /// Convert this keypair to bytes.
+    ///
+    /// # Returns
+    ///
+    /// An array of bytes, `[u8; KEYPAIR_LENGTH]`.  The first
+    /// `SECRET_KEY_LENGTH` of bytes is the `SecretKey`, and the next
+    /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey`
+    pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
+        let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
 
-    //     bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.secret.as_bytes());
-    //     bytes[SECRET_KEY_LENGTH..].copy_from_slice(self.public.as_bytes());
-    //     bytes
-    // }
+        bytes[..SECRET_KEY_LENGTH].copy_from_slice(self.secret.as_bytes());
+        bytes[SECRET_KEY_LENGTH..].copy_from_slice(self.public.as_bytes());
+        bytes
+    }
 
-    // /// Construct a `Keypair` from the bytes of a `PublicKey` and `SecretKey`.
-    // ///
-    // /// # Inputs
-    // ///
-    // /// * `bytes`: an `&[u8]` representing the scalar for the secret key, and a
-    // ///   compressed Edwards-Y coordinate of a point on curve25519, both as bytes.
-    // ///   (As obtained from `Keypair::to_bytes()`.)
-    // ///
-    // /// # Warning
-    // ///
-    // /// Absolutely no validation is done on the key.  If you give this function
-    // /// bytes which do not represent a valid point, or which do not represent
-    // /// corresponding parts of the key, then your `Keypair` will be broken and
-    // /// it will be your fault.
-    // ///
-    // /// # Returns
-    // ///
-    // /// A `Result` whose okay value is an Schnorr `Keypair` or whose error value
-    // /// is an `SchnorrError` describing the error that occurred.
-    // pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
-    //     if bytes.len() != KEYPAIR_LENGTH {
-    //         return Err(SchnorrError::BytesLengthError{
-    //             name: "Keypair",
-    //             description: Keypair::DESCRIPTION,
-    //             length: KEYPAIR_LENGTH
-    //         });
-    //     }
-    //     let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
-    //     let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
+    /// Construct a `Keypair` from the bytes of a `PublicKey` and `SecretKey`.
+    ///
+    /// # Inputs
+    ///
+    /// * `bytes`: an `&[u8]` representing the scalar for the secret key, and a
+    ///   compressed Edwards-Y coordinate of a point on curve25519, both as bytes.
+    ///   (As obtained from `Keypair::to_bytes()`.)
+    ///
+    /// # Warning
+    ///
+    /// Absolutely no validation is done on the key.  If you give this function
+    /// bytes which do not represent a valid point, or which do not represent
+    /// corresponding parts of the key, then your `Keypair` will be broken and
+    /// it will be your fault.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` whose okay value is an Schnorr `Keypair` or whose error value
+    /// is an `SchnorrError` describing the error that occurred.
+    pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
+        if bytes.len() != KEYPAIR_LENGTH {
+            return Err(SchnorrError::SerError);
+        }
+        let secret = SecretKey::from_bytes(&bytes[..SECRET_KEY_LENGTH])?;
+        let public = PublicKey::from_bytes(&bytes[SECRET_KEY_LENGTH..])?;
 
-    //     Ok(Keypair{ secret: secret, public: public })
-    // }
+        Ok(Keypair{ secret: secret, public: public })
+    }
 
     /// Generate an schnorr keypair.
     ///

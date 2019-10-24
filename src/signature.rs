@@ -15,10 +15,9 @@
 //! A Rust implementation of Schnorr signing
 
 use mohan::dalek::{
-    constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_TABLE},
-    ristretto::{CompressedRistretto, RistrettoPoint},
-    scalar::Scalar,
-    traits::{IsIdentity, VartimeMultiscalarMul},
+    constants::{RISTRETTO_BASEPOINT_TABLE},
+    ristretto::{CompressedRistretto},
+    scalar::Scalar
 };
 use std::fmt::Debug;
 
@@ -28,7 +27,6 @@ use crate::keys::{PublicKey, SecretKey};
 
 use bacteria::Transcript;
 use std::iter;
-use std::vec::Vec;
 
 /// The length of a curve25519 Schnorr `Signature`, in bytes.
 pub const SIGNATURE_LENGTH: usize = 64;
@@ -61,6 +59,8 @@ pub struct Signature {
     /// - the message to be signed.
     pub(crate) s: Scalar,
 }
+
+
 
 impl Clone for Signature {
     fn clone(&self) -> Self {
@@ -331,6 +331,12 @@ mod test {
     use rand::prelude::*; // ThreadRng,thread_rng
     use rand_chacha::ChaChaRng;
     // use std::vec::Vec;
+    use mohan::dalek::{
+        constants::{RISTRETTO_BASEPOINT_TABLE},
+        ristretto::{CompressedRistretto, RistrettoPoint},
+        scalar::Scalar,
+        traits::{IsIdentity, VartimeMultiscalarMul},
+    };
 
     use crate::{
         tools::SigningContext, BatchVerification, BatchVerifier, Keypair, PublicKey, SecretKey,

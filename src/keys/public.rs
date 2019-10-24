@@ -47,8 +47,6 @@ impl ::zeroize::Zeroize for PublicKey {
 }
 
 impl PublicKey {
-    const DESCRIPTION: &'static str =
-        "A Ristretto Schnorr public key represented as a 32-byte Ristretto compressed point";
 
     /// Access the compressed Ristretto form
     pub fn as_compressed(&self) -> &CompressedRistretto {

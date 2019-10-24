@@ -5,15 +5,12 @@
 //! inputs for efficient veriffication
 
 use crate::{
-    errors::{self, MuSigError, SchnorrError},
-    MuSigContext, PublicKey, SecretKey, Signature,
+    MuSigContext, 
+    PublicKey
 };
 use bacteria::Transcript;
 use mohan::dalek::{
-    constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_TABLE},
-    ristretto::{CompressedRistretto, RistrettoPoint},
     scalar::Scalar,
-    traits::{IsIdentity, VartimeMultiscalarMul},
 };
 
 /// MuSig multimessage context

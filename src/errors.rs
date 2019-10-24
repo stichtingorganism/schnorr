@@ -16,55 +16,6 @@
 
 use failure::Fail;
 
-// #[derive(Eq, PartialEq, Debug, Fail, Clone)]
-// pub enum MuSigError {
-//     /// The number of public nonces must match the number of public keys in the joint key
-//     #[fail(display = "The number of public nonces must match the number of public keys in the joint key")]
-//     MismatchedNonces,
-//     /// The number of partial signatures must match the number of public keys in the joint key
-//     #[fail(display = "The number of partial signatures must match the number of public keys in the joint key")]
-//     MismatchedSignatures,
-//     /// The aggregate signature did not verify
-//     #[fail(display = "The aggregate signature did not verify")]
-//     InvalidAggregateSignature,
-//     /// A partial signature did not validate
-//     #[fail(display = "A partial signature did not validate at index: {}", _0)]
-//     InvalidPartialSignature(usize),
-//     /// The participant list must be sorted before making this call
-//     #[fail(display = "The participant list must be sorted before making this call")]
-//     NotSorted,
-//     /// The participant key is not in the list
-//     #[fail(display = "The participant key is not in the list")]
-//     ParticipantNotFound,
-//     /// An attempt was made to perform an invalid MuSig state transition
-//     #[fail(display = "An attempt was made to perform an invalid MuSig state transition")]
-//     InvalidStateTransition,
-//     /// An attempt was made to add a duplicate public key to a MuSig signature
-//     #[fail(display = "An attempt was made to add a duplicate public key to a MuSig signature")]
-//     DuplicatePubKey,
-//     /// There are too many parties in the MuSig signature
-//     #[fail(display = "There are too many parties in the MuSig signature")]
-//     TooManyParticipants,
-//     /// There are too few parties in the MuSig signature
-//     #[fail(display = "There are too few parties in the MuSig signature")]
-//     NotEnoughParticipants,
-//     /// A nonce hash is missing
-//     #[fail(display = "A nonce hash is missing")]
-//     MissingNonce,
-//     /// The message to be signed can only be set once
-//     #[fail(display = "The message to be signed can only be set once")]
-//     MessageAlreadySet,
-//     /// The message to be signed MUST be set before the final nonce is added to the MuSig ceremony
-//     #[fail(display = "The message to be signed MUST be set before the final nonce is added to the MuSig ceremony")]
-//     MissingMessage,
-//     /// The message to sign is invalid. have you hashed it?
-//     #[fail(display = "The message to sign is invalid. have you hashed it?")]
-//     InvalidMessage,
-//     /// MuSig requires a hash function with a 32 byte digest
-//     #[fail(display = "MuSig requires a hash function with a 32 byte digest")]
-//     IncompatibleHashFunction,
-// }
-
 /// Represents an error in key aggregation, signing, or verification.
 #[derive(Fail, Clone, Debug, Eq, PartialEq)]
 pub enum MuSigError {
@@ -138,3 +89,54 @@ pub enum SchnorrError {
 pub fn from_musig(err: MuSigError) -> SchnorrError {
     SchnorrError::MuSig { kind: err }
 }
+
+
+
+// #[derive(Eq, PartialEq, Debug, Fail, Clone)]
+// pub enum MuSigError {
+//     /// The number of public nonces must match the number of public keys in the joint key
+//     #[fail(display = "The number of public nonces must match the number of public keys in the joint key")]
+//     MismatchedNonces,
+//     /// The number of partial signatures must match the number of public keys in the joint key
+//     #[fail(display = "The number of partial signatures must match the number of public keys in the joint key")]
+//     MismatchedSignatures,
+//     /// The aggregate signature did not verify
+//     #[fail(display = "The aggregate signature did not verify")]
+//     InvalidAggregateSignature,
+//     /// A partial signature did not validate
+//     #[fail(display = "A partial signature did not validate at index: {}", _0)]
+//     InvalidPartialSignature(usize),
+//     /// The participant list must be sorted before making this call
+//     #[fail(display = "The participant list must be sorted before making this call")]
+//     NotSorted,
+//     /// The participant key is not in the list
+//     #[fail(display = "The participant key is not in the list")]
+//     ParticipantNotFound,
+//     /// An attempt was made to perform an invalid MuSig state transition
+//     #[fail(display = "An attempt was made to perform an invalid MuSig state transition")]
+//     InvalidStateTransition,
+//     /// An attempt was made to add a duplicate public key to a MuSig signature
+//     #[fail(display = "An attempt was made to add a duplicate public key to a MuSig signature")]
+//     DuplicatePubKey,
+//     /// There are too many parties in the MuSig signature
+//     #[fail(display = "There are too many parties in the MuSig signature")]
+//     TooManyParticipants,
+//     /// There are too few parties in the MuSig signature
+//     #[fail(display = "There are too few parties in the MuSig signature")]
+//     NotEnoughParticipants,
+//     /// A nonce hash is missing
+//     #[fail(display = "A nonce hash is missing")]
+//     MissingNonce,
+//     /// The message to be signed can only be set once
+//     #[fail(display = "The message to be signed can only be set once")]
+//     MessageAlreadySet,
+//     /// The message to be signed MUST be set before the final nonce is added to the MuSig ceremony
+//     #[fail(display = "The message to be signed MUST be set before the final nonce is added to the MuSig ceremony")]
+//     MissingMessage,
+//     /// The message to sign is invalid. have you hashed it?
+//     #[fail(display = "The message to sign is invalid. have you hashed it?")]
+//     InvalidMessage,
+//     /// MuSig requires a hash function with a 32 byte digest
+//     #[fail(display = "MuSig requires a hash function with a 32 byte digest")]
+//     IncompatibleHashFunction,
+// }
