@@ -73,6 +73,7 @@ pub struct BatchVerifier<R: RngCore + CryptoRng> {
     dyn_points: Vec<Option<RistrettoPoint>>,
 }
 
+
 impl<R: RngCore + CryptoRng> BatchVerifier<R> {
     /// Returns a new instance for batch verification
     pub fn new(rng: R) -> Self {
