@@ -23,11 +23,10 @@
 
 #[macro_use]
 extern crate criterion;
-extern crate schnorr;
-extern crate rand;
 extern crate blake2;
 extern crate merlin;
-
+extern crate rand;
+extern crate schnorr;
 
 mod schnorr_benches {
     use criterion::Criterion;
@@ -36,7 +35,7 @@ mod schnorr_benches {
 
     use merlin::Transcript;
     // use blake2::Blake2b;
-    use rand::prelude::{thread_rng, ThreadRng}; 
+    use rand::prelude::{thread_rng, ThreadRng};
 
     fn sign(c: &mut Criterion) {
         let mut csprng: ThreadRng = thread_rng();
@@ -46,10 +45,9 @@ mod schnorr_benches {
         let ctx = SigningContext::new(b"this signature does this thing");
 
         c.bench_function("Schnorr signing", move |b| {
-            b.iter(| | keypair.sign(ctx.bytes(msg)))
+            b.iter(|| keypair.sign(ctx.bytes(msg)))
         });
     }
-
 
     fn verify(c: &mut Criterion) {
         let mut csprng: ThreadRng = thread_rng();
@@ -57,12 +55,11 @@ mod schnorr_benches {
         let msg: &[u8] = b"";
         let ctx = SigningContext::new(b"this signature does this thing");
         let sig: Signature = keypair.sign(ctx.bytes(msg));
-        
+
         c.bench_function("Schnorr signature verification", move |b| {
-                         b.iter(| | keypair.verify(ctx.bytes(msg), &sig))
+            b.iter(|| keypair.verify(ctx.bytes(msg), &sig))
         });
     }
-
 
     fn verify_batch_signatures(c: &mut Criterion) {
         static BATCH_SIZES: [usize; 8] = [4, 8, 16, 32, 64, 96, 128, 256];
@@ -71,32 +68,37 @@ mod schnorr_benches {
             "Schnorr batch signature verification",
             |b, &&size| {
                 let mut csprng: ThreadRng = thread_rng();
-                let keypairs: Vec<Keypair> = (0..size).map(|_| Keypair::generate(&mut csprng)).collect();
+                let keypairs: Vec<Keypair> =
+                    (0..size).map(|_| Keypair::generate(&mut csprng)).collect();
                 let msg: &[u8] = b"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-				let ctx = SigningContext::new(b"this signature does this thing");
-                let signatures:  Vec<Signature> = keypairs.iter().map(|key| key.sign(ctx.bytes(msg))).collect();
+                let ctx = SigningContext::new(b"this signature does this thing");
+                let signatures: Vec<Signature> = keypairs
+                    .iter()
+                    .map(|key| key.sign(ctx.bytes(msg)))
+                    .collect();
                 let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
 
                 b.iter(|| {
-					let transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(size).collect();
-					verify_batch(&transcripts[..], &signatures[..], &public_keys[..])
-				});
+                    let transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg))
+                        .cycle()
+                        .take(size)
+                        .collect();
+                    verify_batch(&transcripts[..], &signatures[..], &public_keys[..])
+                });
             },
             &BATCH_SIZES,
         );
     }
 
-    
-
     fn key_generation(c: &mut Criterion) {
         let mut csprng: ThreadRng = thread_rng();
 
         c.bench_function("Schnorr keypair generation", move |b| {
-                         b.iter(| | Keypair::generate(&mut csprng))
+            b.iter(|| Keypair::generate(&mut csprng))
         });
     }
 
-    criterion_group!{
+    criterion_group! {
         name = schnorr_benches;
         config = Criterion::default();
         targets =
@@ -107,6 +109,4 @@ mod schnorr_benches {
     }
 }
 
-criterion_main!(
-    schnorr_benches::schnorr_benches,
-);
+criterion_main!(schnorr_benches::schnorr_benches,);

@@ -1,19 +1,11 @@
 //! Multi extenstion for Signature Type
 
 use crate::{
-    PublicKey,
-    Signature,
-    errors::{self, SchnorrError, MuSigError},
-    SingleVerifier,
-    Multimessage,
-    BatchVerification,
-    MuSigContext
+    errors::{self, MuSigError, SchnorrError},
+    BatchVerification, MuSigContext, Multimessage, PublicKey, Signature, SingleVerifier,
 };
 use bacteria::Transcript;
-use mohan::dalek::{
-    scalar::Scalar,
-    constants::RISTRETTO_BASEPOINT_POINT
-};
+use mohan::dalek::{constants::RISTRETTO_BASEPOINT_POINT, scalar::Scalar};
 use std::borrow::Borrow;
 use std::iter;
 
@@ -43,10 +35,9 @@ pub trait Multisignature {
         &self,
         transcript: &mut Transcript,
         messages: Vec<(PublicKey, M)>,
-        batch: &mut impl BatchVerification
+        batch: &mut impl BatchVerification,
     );
 }
-
 
 impl Multisignature for Signature {
     fn sign_multi<P, M>(
@@ -63,18 +54,10 @@ impl Multisignature for Signature {
         let mut privkeys = privkeys.into_iter().peekable();
 
         if messages.len() != privkeys.len() {
-            return Err(
-                errors::from_musig(
-                    MuSigError::BadArguments 
-                )
-            );
+            return Err(errors::from_musig(MuSigError::BadArguments));
         }
         if privkeys.len() == 0 {
-            return Err(
-                errors::from_musig(
-                    MuSigError::BadArguments 
-                )
-            );
+            return Err(errors::from_musig(MuSigError::BadArguments));
         }
 
         let context = Multimessage::new(messages);

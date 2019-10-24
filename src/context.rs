@@ -1,8 +1,8 @@
 //! MuSug Process Context
 
+use crate::PublicKey;
 use bacteria::Transcript;
 use mohan::dalek::scalar::Scalar;
-use crate::PublicKey;
 
 /// The context for signing - can either be a Multikey or Multimessage context.
 pub trait MuSigContext {
@@ -19,5 +19,3 @@ pub trait MuSigContext {
     /// Returns the pubkey for the index i
     fn key(&self, index: usize) -> PublicKey;
 }
-
-

@@ -12,26 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-//! Schnorr Secret Key & Extended Secret Key generation 
-use std::fmt::{Debug};
-use subtle::{Choice, ConstantTimeEq};
-use rand::{RngCore, CryptoRng};
-use mohan::{
-    dalek::scalar::Scalar,
-    ser
-};
-use zeroize::Zeroize;
+//! Schnorr Secret Key & Extended Secret Key generation
 use crate::SchnorrError;
+use mohan::{dalek::scalar::Scalar, ser};
+use rand::{CryptoRng, RngCore};
+use std::fmt::Debug;
+use subtle::{Choice, ConstantTimeEq};
+use zeroize::Zeroize;
 
 /// The length of a curve25519 Schnorr `SecretKey`, in bytes.
 pub const SECRET_KEY_LENGTH: usize = 32;
 
-
 /// An Schnorr secret key.
 #[derive(Default, Clone)]
-pub struct SecretKey(pub (crate) Scalar);
-
+pub struct SecretKey(pub(crate) Scalar);
 
 impl Debug for SecretKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -66,7 +60,6 @@ impl Drop for SecretKey {
 }
 
 impl SecretKey {
-   
     /// Convert this secret key to a byte array.
     #[inline]
     pub fn to_bytes(&self) -> [u8; SECRET_KEY_LENGTH] {
@@ -172,13 +165,16 @@ impl SecretKey {
     ///
     /// A CSPRNG with a `fill_bytes()` method, e.g. `rand::ChaChaRng`
     pub fn generate<T>(csprng: &mut T) -> SecretKey
-        where T: CryptoRng + RngCore,
+    where
+        T: CryptoRng + RngCore,
     {
         SecretKey(Scalar::random(csprng))
     }
 
     ///Helper Method to Convert key to scalar
-    pub fn to_scalar(&self) -> Scalar { self.0 }
+    pub fn to_scalar(&self) -> Scalar {
+        self.0
+    }
 
     /// View this scalaras a byte array.
     #[inline]
@@ -187,24 +183,23 @@ impl SecretKey {
     }
 
     ///Helper Method to Convert Scalar to Key
-    pub fn from_scalar(s: Scalar) -> SecretKey { SecretKey(s) }
-
+    pub fn from_scalar(s: Scalar) -> SecretKey {
+        SecretKey(s)
+    }
 }
 
-
 impl ser::Writeable for SecretKey {
-	fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+    fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
         self.0.write(writer)?;
         Ok(())
-	}
+    }
 }
 
 impl ser::Readable for SecretKey {
-	fn read(reader: &mut dyn ser::Reader) -> Result<SecretKey, ser::Error> {
-		Ok(SecretKey(Scalar::read(reader)?))
-	}
+    fn read(reader: &mut dyn ser::Reader) -> Result<SecretKey, ser::Error> {
+        Ok(SecretKey(Scalar::read(reader)?))
+    }
 }
-
 
 impl std::borrow::Borrow<Scalar> for SecretKey {
     #[inline]

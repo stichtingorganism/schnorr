@@ -1,17 +1,11 @@
 //! MuSig Key
 
-use mohan::dalek::{
-    scalar::Scalar, 
-    ristretto::RistrettoPoint
-}; 
-use bacteria::Transcript;
 use crate::{
-    PublicKey,
-    SchnorrError, 
-    MuSigContext,
-    errors::{self, MuSigError}
+    errors::{self, MuSigError},
+    MuSigContext, PublicKey, SchnorrError,
 };
-
+use bacteria::Transcript;
+use mohan::dalek::{ristretto::RistrettoPoint, scalar::Scalar};
 
 /// MuSig aggregated key context
 #[derive(Clone)]
@@ -22,14 +16,11 @@ pub struct MultiKey {
 }
 
 impl MultiKey {
-
     /// Constructs a new MuSig multikey aggregating the pubkeys.
     pub fn new(pubkeys: Vec<PublicKey>) -> Result<Self, SchnorrError> {
         match pubkeys.len() {
             0 => {
-                return Err(
-                    errors::from_musig(MuSigError::BadArguments)
-                );
+                return Err(errors::from_musig(MuSigError::BadArguments));
             }
             1 => {
                 // Special case: single key can be wrapped in a Multikey type
@@ -83,11 +74,7 @@ impl MultiKey {
     }
 }
 
-
-
-
 impl MuSigContext for MultiKey {
-
     fn commit(&self, transcript: &mut Transcript) {
         // Domain seperation
         transcript.proto_name(b"organism_schnorr");

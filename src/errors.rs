@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 //! Errors which may occur when parsing keys and/or signatures to or from wire formats.
-
 
 use failure::Fail;
 
@@ -88,10 +86,10 @@ pub enum MuSigError {
     /// This error occurs when a function is called with bad arguments.
     #[fail(display = "Bad arguments")]
     BadArguments,
-    
+
     /// There are too many parties in the MuSig signature
     #[fail(display = "There are too many parties in the MuSig signature")]
-    TooManyParticipants
+    TooManyParticipants,
 }
 
 /// Internal errors.  Most application-level developers will likely not
@@ -119,14 +117,9 @@ pub enum SchnorrError {
     BadArguments,
 
     /// Musig  
-    #[fail(
-        display = "Absent {} violated multi-signature protocol",
-        _0
-    )]
-    MuSig {
-        kind: MuSigError 
-    },
-    
+    #[fail(display = "Absent {} violated multi-signature protocol", _0)]
+    MuSig { kind: MuSigError },
+
     /// This error occurs when a point is not a valid compressed Ristretto point
     #[fail(display = "Signature verification failed")]
     InvalidSignature,
@@ -134,11 +127,14 @@ pub enum SchnorrError {
     /// This error occurs when a set of signatures failed to verify as a batch
     #[fail(display = "Batch signature verification failed")]
     InvalidBatch,
+
+    /// VSS Error 
+    #[fail(display = "VSS share error")]
+    VerifyShareError
 }
+
 
 /// Helper function to foncert a musig error into schnorr error
 pub fn from_musig(err: MuSigError) -> SchnorrError {
-    SchnorrError::MuSig {
-        kind: err
-    }
+    SchnorrError::MuSig { kind: err }
 }

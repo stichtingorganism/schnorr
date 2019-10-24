@@ -12,18 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//! A Rust implementation of Schnorr key generation,
 
-//! A Rust implementation of Schnorr key generation, 
-
-use rand::{RngCore, CryptoRng};
+use crate::keys::{PublicKey, SecretKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 use crate::SchnorrError;
-use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
-use zeroize::Zeroize;
 use mohan::ser;
+use rand::{CryptoRng, RngCore};
+use zeroize::Zeroize;
 
 /// The length of an ed25519 Schnorr `Keypair`, in bytes.
 pub const KEYPAIR_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
-
 
 /// An Schnorr keypair.
 #[derive(Debug, Default)] // we derive Default in order to use the clear() method in Drop
@@ -38,7 +36,7 @@ pub struct Keypair {
 impl From<SecretKey> for Keypair {
     fn from(secret: SecretKey) -> Keypair {
         let public = PublicKey::from_secret(&secret);
-        Keypair{ secret, public }
+        Keypair { secret, public }
     }
 }
 
@@ -54,9 +52,7 @@ impl Drop for Keypair {
     }
 }
 
-
 impl Keypair {
-    
     // const DESCRIPTION : &'static str = "An Schnorr keypair, 64 bytes in total where the secret key is \
     //                                  the first 32 bytes and the second \
     //                                  32 bytes is a compressed point for a public key.";
@@ -67,7 +63,7 @@ impl Keypair {
     // ///
     // /// An array of bytes, `[u8; KEYPAIR_LENGTH]`.  The first
     // /// `SECRET_KEY_LENGTH` of bytes is the `SecretKey`, and the next
-    // /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey` 
+    // /// `PUBLIC_KEY_LENGTH` bytes is the `PublicKey`
     // pub fn to_bytes(&self) -> [u8; KEYPAIR_LENGTH] {
     //     let mut bytes: [u8; KEYPAIR_LENGTH] = [0u8; KEYPAIR_LENGTH];
 
@@ -98,8 +94,8 @@ impl Keypair {
     // pub fn from_bytes<'a>(bytes: &'a [u8]) -> Result<Keypair, SchnorrError> {
     //     if bytes.len() != KEYPAIR_LENGTH {
     //         return Err(SchnorrError::BytesLengthError{
-    //             name: "Keypair", 
-    //             description: Keypair::DESCRIPTION, 
+    //             name: "Keypair",
+    //             description: Keypair::DESCRIPTION,
     //             length: KEYPAIR_LENGTH
     //         });
     //     }
@@ -137,12 +133,16 @@ impl Keypair {
     /// `Digest` and `Default` traits, and which returns 512 bits of output.
     /// The standard hash function used is Blake2b-512,
     pub fn generate<R>(csprng: &mut R) -> Keypair
-        where R: CryptoRng + RngCore,
+    where
+        R: CryptoRng + RngCore,
     {
         let sk: SecretKey = SecretKey::generate(csprng);
         let pk: PublicKey = PublicKey::from_secret(&sk);
 
-        Keypair { public: pk, secret: sk }
+        Keypair {
+            public: pk,
+            secret: sk,
+        }
     }
 
     /// Derive the `PublicKey` corresponding to this `SecretKey`.
@@ -152,30 +152,28 @@ impl Keypair {
             public: PublicKey::from_secret(s),
         }
     }
-
 }
 
 impl ser::Writeable for Keypair {
-	fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+    fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
         self.secret.write(writer)?;
         self.public.write(writer)?;
 
         Ok(())
-	}
+    }
 }
 
 impl ser::Readable for Keypair {
-	fn read(reader: &mut dyn ser::Reader) -> Result<Keypair, ser::Error> {
+    fn read(reader: &mut dyn ser::Reader) -> Result<Keypair, ser::Error> {
         let s = SecretKey::read(reader)?;
         let p = PublicKey::read(reader)?;
 
-		Ok(Keypair{
+        Ok(Keypair {
             secret: s,
-            public: p
+            public: p,
         })
-	}
+    }
 }
-
 
 #[cfg(test)]
 mod test {
@@ -191,13 +189,9 @@ mod test {
             use core::mem;
             use core::slice;
 
-            unsafe {
-                slice::from_raw_parts(x as *const T as *const u8, mem::size_of_val(x))
-            }
+            unsafe { slice::from_raw_parts(x as *const T as *const u8, mem::size_of_val(x)) }
         }
 
         assert!(!as_bytes(&keypair).iter().all(|x| *x == 0u8));
     }
-
-
 }

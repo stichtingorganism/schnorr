@@ -14,19 +14,13 @@
 
 //! Implementation of the key tree protocol, a key blinding scheme for deriving hierarchies of public keys.
 
-use std::fmt::Debug;
-use crate::keys::{SecretKey, SECRET_KEY_LENGTH, PublicKey, PUBLIC_KEY_LENGTH };
-use rand::{Rng, CryptoRng};
+use crate::keys::{PublicKey, SecretKey, PUBLIC_KEY_LENGTH, SECRET_KEY_LENGTH};
 use crate::SchnorrError;
-use subtle::{Choice, ConstantTimeEq};
 use bacteria::Transcript;
-use mohan::{
-    dalek::{
-        scalar::Scalar,
-        constants,
-        ristretto::{CompressedRistretto}
-    }
-};
+use mohan::dalek::{constants, ristretto::CompressedRistretto, scalar::Scalar};
+use rand::{CryptoRng, Rng};
+use std::fmt::Debug;
+use subtle::{Choice, ConstantTimeEq};
 use zeroize::Zeroize;
 
 /// The length of the "Derivation key" portion of a Extended Schnorr public key, in bytes.
@@ -38,17 +32,15 @@ const EXTENDED_SECRET_KEY_NONCE_LENGTH: usize = 32;
 /// The length of an extended curve25519 Schnorr key, `SecretKey`, in bytes.
 pub const EXTENDED_SECRET_KEY_LENGTH: usize = SECRET_KEY_LENGTH + EXTENDED_SECRET_KEY_NONCE_LENGTH;
 
-
 /// An Extended seceret key for use with Ristretto Schnorr signatures.
 #[derive(Clone, Default)]
 pub struct XSecretKey {
     /// Actual Secret key represented as a scalar.
-    pub (crate) key: SecretKey,
+    pub(crate) key: SecretKey,
 
-    /// Holds the extended public key point of this secret key 
-    pub (crate) xpub: XPublicKey
+    /// Holds the extended public key point of this secret key
+    pub(crate) xpub: XPublicKey,
 }
-
 
 impl ::zeroize::Zeroize for XSecretKey {
     fn zeroize(&mut self) {
@@ -64,10 +56,13 @@ impl Drop for XSecretKey {
 
 impl Debug for XSecretKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        write!(f, "XSecretKey {{ key: {:?} nonce: {:?} }}", &self.key, &self.xpub.derivation_key)
+        write!(
+            f,
+            "XSecretKey {{ key: {:?} nonce: {:?} }}",
+            &self.key, &self.xpub.derivation_key
+        )
     }
 }
-
 
 impl Eq for XSecretKey {}
 impl PartialEq for XSecretKey {
@@ -103,128 +98,129 @@ impl From<&SecretKey> for XSecretKey {
     // / # }
     // / ```
     fn from(msk: &SecretKey) -> XSecretKey {
-       XSecretKey::from_secret(msk)
+        XSecretKey::from_secret(msk)
     }
 }
 
-
 impl XSecretKey {
-   
-    // /// Convert this `SecretKey` into an array of 64 bytes, corresponding to
-    // /// an Ristrettp expanded secreyt key.
-    // ///
-    // /// # Returns
-    // ///
-    // /// An array of 64 bytes.  The first 32 bytes represent the "expanded"
-    // /// secret key, and the last 32 bytes represent the "domain-separation"
-    // /// "nonce".
-    // ///
-    // /// # Examples
-    // ///
-    // /// ```
-    // /// # extern crate rand;
-    // /// # extern crate blake2;
-    // /// # extern crate schnorr;
-    // /// #
-    // /// # fn main() {
-    // /// use rand::{Rng, rngs::OsRng};
-    // /// use blake2::Blake2b;
-    // /// use schnorr::*;
-    // ///
-    // /// let mut csprng: OsRng = OsRng::new().unwrap();
-    // /// let mini_secret_key: SecretKey = SecretKey::generate(&mut csprng);
-    // /// let secret_key: XSecretKey = XSecretKey::from(&mini_secret_key);
-    // /// let secret_key_bytes: [u8; 64] = secret_key.to_bytes();
-    // ///
-    // /// assert!(&secret_key_bytes[..] != &[0u8; 64][..]);
-    // /// # }
-    // /// ```
-    // #[inline]
-    // pub fn to_bytes(&self) -> [u8; EXTENDED_SECRET_KEY_LENGTH] {
-    //     let mut bytes: [u8; 64] = [0u8; 64];
-    //     let key = self.key.to_bytes();
-    //     bytes[..32].copy_from_slice(&key[..]);
-    //     bytes[32..].copy_from_slice(&self.xpub.derivation_key[..]);
-    //     bytes
-    // }
+    /// Convert this `SecretKey` into an array of 64 bytes, corresponding to
+    /// an Ristrettp expanded secreyt key.
+    ///
+    /// # Returns
+    ///
+    /// An array of 64 bytes.  The first 32 bytes represent the "expanded"
+    /// secret key, and the last 32 bytes represent the "domain-separation"
+    /// "nonce".
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate mohan;
+    /// # extern crate blake2;
+    /// # extern crate schnorr;
+    /// #
+    /// # fn main() {
+    ///
+    /// use blake2::Blake2b;
+    /// use schnorr::*;
+    ///
+    /// let mut csprng = mohan::mohan_rand();
+    /// let mini_secret_key: SecretKey = SecretKey::generate(&mut csprng);
+    /// let secret_key: XSecretKey = XSecretKey::from(&mini_secret_key);
+    /// let secret_key_bytes: [u8; 64] = secret_key.to_bytes();
+    ///
+    /// assert!(&secret_key_bytes[..] != &[0u8; 64][..]);
+    /// # }
+    /// ```
+    #[inline]
+    pub fn to_bytes(&self) -> [u8; EXTENDED_SECRET_KEY_LENGTH] {
+        let mut bytes: [u8; 64] = [0u8; 64];
+        let key = self.key.to_bytes();
+        bytes[..32].copy_from_slice(&key[..]);
+        bytes[32..].copy_from_slice(&self.xpub.derivation_key[..]);
+        bytes
+    }
 
-    // /// Construct an `SecretKey` from a slice of bytes.
-    // ///
-    // /// # Returns
-    // ///
-    // /// A `Result` whose okay value is an EdDSA `SecretKey` or whose
-    // /// error value is an `SignatureError` describing the error that occurred.
-    // ///
-    // /// # Examples
-    // ///
-    // /// ```
-    // /// # extern crate rand;
-    // /// # extern crate blake2;
-    // /// # extern crate schnorr;
-    // /// #
-    // /// use schnorr::*;
-    // /// use rand::{Rng, rngs::OsRng};
-    // /// # fn do_test() -> Result<XSecretKey, SchnorrError> {
-    // /// let mut csprng: OsRng = OsRng::new().unwrap();
-    // /// let secret_key: SecretKey = SecretKey::generate(&mut csprng);
-    // /// let ex_secret_key: XSecretKey = XSecretKey::from(&secret_key);
-    // /// let bytes: [u8; 64] = ex_secret_key.to_bytes();
-    // /// let secret_key_again = XSecretKey::from_bytes(&bytes) ?;
-    // /// #
-    // /// # Ok(secret_key_again)
-    // /// # }
-    // /// #
-    // /// # fn main() {
-    // /// #     let result = do_test();
-    // /// #     assert!(result.is_ok());
-    // /// # }
-    // /// ```
-    // #[inline]
-    // pub fn from_bytes(bytes: &[u8]) -> Result<XSecretKey, SchnorrError> {
+    /// Construct an `SecretKey` from a slice of bytes.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` whose okay value is an EdDSA `SecretKey` or whose
+    /// error value is an `SignatureError` describing the error that occurred.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # extern crate mohan;
+    /// # extern crate blake2;
+    /// # extern crate schnorr;
+    /// #
+    /// use schnorr::*;
+    ///
+    /// # fn do_test() -> Result<XSecretKey, SchnorrError> {
+    /// let mut csprng = mohan::mohan_rand();
+    /// let secret_key: SecretKey = SecretKey::generate(&mut csprng);
+    /// let ex_secret_key: XSecretKey = XSecretKey::from(&secret_key);
+    /// let bytes: [u8; 64] = ex_secret_key.to_bytes();
+    /// let secret_key_again = XSecretKey::from_bytes(&bytes) ?;
+    /// #
+    /// # Ok(secret_key_again)
+    /// # }
+    /// #
+    /// # fn main() {
+    /// #     let result = do_test();
+    /// #     assert!(result.is_ok());
+    /// # }
+    /// ```
+    #[inline]
+    pub fn from_bytes(bytes: &[u8]) -> Result<XSecretKey, SchnorrError> {
+        if bytes.len() != EXTENDED_SECRET_KEY_LENGTH {
+            return Err(SchnorrError::BadArguments);
+        }
 
-    //     if bytes.len() != EXTENDED_SECRET_KEY_LENGTH {
-    //          return Err(SchnorrError::BadArguments);
-    //     }
+        let mut key: [u8; 32] = [0u8; 32];
+        key.copy_from_slice(&bytes[00..32]);
 
-    //     let mut key: [u8; 32] = [0u8; 32];
-    //     key.copy_from_slice(&bytes[00..32]);
+        let scalar = Scalar::from_bits(key);
+        //return Err(SchnorrError(InternalError::ScalarFormatError)),
 
-    //     let scalar =  Scalar::from_bits(key);
-    //     //return Err(SchnorrError(InternalError::ScalarFormatError)),
-     
-    //     let mut nonce: [u8; 32] = [0u8; 32];
-    //     nonce.copy_from_slice(&bytes[32..64]);
+        let mut nonce: [u8; 32] = [0u8; 32];
+        nonce.copy_from_slice(&bytes[32..64]);
+        let key_t = SecretKey(scalar);
+        let pk_t = PublicKey::from_secret(&key_t);
 
+        Ok(XSecretKey {
+            key: key_t,
+            xpub: XPublicKey {
+                key: pk_t,
+                derivation_key: nonce,
+            },
+        })
+    }
 
-    //     Ok(XSecretKey{
-    //         key: SecretKey(scalar),
-    //         xpub: XPublicKey {
-    //             key: PublicKey::from_point(scalar * &constants::RISTRETTO_BASEPOINT_POINT),
-    //             derivation_key: nonce,
-    //         }
-    //     })
-    // }
-
-    /// Generate an `Extended SecretKey` directly, 
+    /// Generate an `Extended SecretKey` directly,
     pub fn generate<R>(mut csprng: R) -> XSecretKey
-        where R: CryptoRng + Rng,
+    where
+        R: CryptoRng + Rng,
     {
         let scalar = Scalar::random(&mut csprng);
         let mut nonce: [u8; 32] = [0u8; 32];
         csprng.fill_bytes(&mut nonce);
+        let key_t = SecretKey(scalar);
+        let pk_t = PublicKey::from_secret(&key_t);
 
-        XSecretKey { 
-            key: SecretKey(scalar), 
+        XSecretKey {
+            key: key_t,
             xpub: XPublicKey {
-                key: PublicKey::from_point(scalar * &constants::RISTRETTO_BASEPOINT_POINT),
+                key: pk_t,
                 derivation_key: nonce,
-            }
+            },
         }
     }
 
     /// Derive the `XPublicKey` corresponding to this `SecretKey`.
     pub fn to_public(&self) -> XPublicKey {
-        self.xpub.clone() 
+        self.xpub.clone()
     }
 
     /// Return Reference the `XPublicKey` corresponding to this `SecretKey`.
@@ -239,7 +235,7 @@ impl XSecretKey {
 
         //We derive the nonce has the second half of the 512bit hash of secret
         t.append_message(b"secret_key", secret.as_bytes());
-   
+
         let key = t.challenge_scalar(b"Schnorr.derivation.key");
 
         // squeeze a new derivation key
@@ -252,21 +248,20 @@ impl XSecretKey {
             xpub: XPublicKey {
                 key: PublicKey::from_point(&key * &constants::RISTRETTO_BASEPOINT_POINT),
                 derivation_key: nonce,
-            }
+            },
         }
-
     }
-
 
     /// Returns a intermediate child xprv. Users must provide customize, in order to separate
     /// sibling keys from one another through unique derivation paths.
     pub fn derive_intermediate_key(&self, customize: impl FnOnce(&mut Transcript)) -> XSecretKey {
-        let (child_xpub, f) = self.xpub
+        let (child_xpub, f) = self
+            .xpub
             .derive_intermediate_helper(self.xpub.prepare_prf(), customize);
 
         XSecretKey {
             //If you are deriving a child Xprv from a parent Xprv:: parent.point + f
-            key:  SecretKey::from_scalar(self.key.as_scalar() + f),
+            key: SecretKey::from_scalar(self.key.as_scalar() + f),
             xpub: child_xpub,
         }
     }
@@ -275,31 +270,28 @@ impl XSecretKey {
     /// separate sibling keys from one another through unique derivation paths.
     pub fn derive_key(&self, customize: impl FnOnce(&mut Transcript)) -> SecretKey {
         //5. Squeeze a blinding factor f: a challenge scalar
-        let f = self.xpub.derive_leaf_helper(self.xpub.prepare_prf(), customize);
+        let f = self
+            .xpub
+            .derive_leaf_helper(self.xpub.prepare_prf(), customize);
         //6. If you are deriving a child Xprv from a parent Xprv: child = parent.scalar + f
         SecretKey::from_scalar(self.key.as_scalar() + f)
     }
-
-
 }
-
 
 /// Xpub represents an extended public key.
 #[derive(Default, Clone)]
 pub struct XPublicKey {
-    //public key 
+    //public key
     pub key: PublicKey,
- 
+
     /// Seed for deriving the nonces used in signing.
     ///
     /// We require this be random and secret or else key compromise attacks will ensue.
     /// Any modificaiton here may dirupt some non-public key derivation techniques.
-    pub (crate) derivation_key: [u8; 32],
+    pub(crate) derivation_key: [u8; 32],
 }
 
-
 impl XPublicKey {
-
     /// Returns a intermediate child pubkey. Users must provide customize, in order to separate
     /// sibling keys from one another through unique derivation paths.
     pub fn derive_intermediate_key(&self, customize: impl FnOnce(&mut Transcript)) -> XPublicKey {
@@ -336,7 +328,7 @@ impl XPublicKey {
         let mut dk = [0u8; 32];
         dk.copy_from_slice(&bytes[32..]);
 
-        let key = match  PublicKey::from_compressed(precompressed_pubkey) {
+        let key = match PublicKey::from_compressed(precompressed_pubkey) {
             Ok(p) => p,
             Err(_) => return None,
         };
@@ -354,24 +346,22 @@ impl XPublicKey {
         //3. Commit xpub to the transcript:
         t.commit_point(b"pt", self.key.as_compressed());
         t.append_message(b"dk", &self.derivation_key);
-       
+
         t
     }
-
 
     fn derive_intermediate_helper(
         &self,
         mut prf: Transcript,
         customize: impl FnOnce(&mut Transcript),
     ) -> (XPublicKey, Scalar) {
-
         //4. Provide the transcript to the user to commit an arbitrary derivation path or index:
         // change the derivation path for this key
         customize(&mut prf);
 
         //5. Squeeze a blinding factor f: a challenge scalar
         let f = prf.challenge_scalar(b"f.intermediate");
-        
+
         //6. Squeeze a new derivation key
         let mut child_dk = [0u8; 32];
         prf.challenge_bytes(b"dk", &mut child_dk);
@@ -379,9 +369,8 @@ impl XPublicKey {
         //point: parent.point + f·B
         let child_point = self.key.as_point() + (&f * &constants::RISTRETTO_BASEPOINT_POINT);
 
-
         //7. If you are deriving a child Xpub from a parent Xpub:
-       let xpub = XPublicKey {
+        let xpub = XPublicKey {
             key: PublicKey::from_point(child_point),
             derivation_key: child_dk,
         };
@@ -401,11 +390,6 @@ impl XPublicKey {
         prf.challenge_scalar(b"f.leaf")
     }
 }
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -647,7 +631,7 @@ mod tests {
     //         to_hex_32(xpub.derivation_key),
     //         "36e435eabc2a562ef228b82b399fbd004b2cc64103313fa673bd1fca0971f59d"
     //     );
-        
+
     //     //assert_eq!(xpub.key.compress(), xpub.precompressed_pubkey); // checks internal consistency
     //     assert_eq!(
     //         to_hex_32(xpub.key.to_bytes()),
@@ -670,7 +654,6 @@ mod tests {
     //     );
     // }
 
-    
     // fn to_hex_32(input: [u8; 32]) -> std::string::String {
     //    hex::encode(&input[..])
     // }
@@ -678,5 +661,4 @@ mod tests {
     // fn to_hex_64(input: [u8; 64]) -> std::string::String {
     //    hex::encode(&input[..])
     // }
-
 }

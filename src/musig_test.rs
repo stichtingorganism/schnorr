@@ -1,28 +1,16 @@
 //! Musig Tests
 
-use mohan::dalek::{
-    ristretto::CompressedRistretto,
-    scalar::Scalar
-};
 use bacteria::Transcript;
+use mohan::dalek::{ristretto::CompressedRistretto, scalar::Scalar};
 
 use crate::{
-    Signature, 
-    PublicKey,
-    SecretKey,
-    MultiKey,
-    Multimessage, 
-    Multisignature,
-    MuSigContext,
-    Signer,
-    errors::MuSigError
-
+    errors::MuSigError, MuSigContext, MultiKey, Multimessage, Multisignature, PublicKey, SecretKey,
+    Signature, Signer,
 };
-
 
 #[test]
 fn sign_verify_single_multikey() {
-    let privkey =  SecretKey::from_scalar(Scalar::from(1u64));
+    let privkey = SecretKey::from_scalar(Scalar::from(1u64));
     let privkeys = vec![privkey];
     let multikey = multikey_helper(&privkeys);
     let (sig, _) = sign_with_mpc(
@@ -40,7 +28,6 @@ fn sign_verify_single_multikey() {
         .is_ok());
 }
 
-
 fn multikey_helper(priv_keys: &Vec<SecretKey>) -> MultiKey {
     MultiKey::new(
         priv_keys
@@ -52,7 +39,7 @@ fn multikey_helper(priv_keys: &Vec<SecretKey>) -> MultiKey {
 }
 
 #[test]
-fn sign_multikey() {    
+fn sign_multikey() {
     // super secret, sshhh!
     let priv_keys = vec![
         SecretKey::from_scalar(Scalar::from(1u64)),
@@ -65,7 +52,6 @@ fn sign_multikey() {
 
     assert!(sign_with_mpc(&priv_keys, multikey, Transcript::new(b"example transcript")).is_ok());
 }
-
 
 fn sign_with_mpc<C: MuSigContext + Clone>(
     privkeys: &Vec<SecretKey>,
@@ -138,11 +124,12 @@ fn verify_multikey() {
     )
     .unwrap();
 
-    assert!(
-        signature.verify(
+    assert!(signature
+        .verify(
             &mut Transcript::new(b"example transcript"),
-            &multikey.aggregated_key()).is_ok()
-    );
+            &multikey.aggregated_key()
+        )
+        .is_ok());
 }
 
 #[test]
@@ -207,7 +194,7 @@ fn multimessage_helper<M: AsRef<[u8]>>(
 
 #[test]
 fn verify_multimessage_mpc() {
-   // super secret, sshhh!
+    // super secret, sshhh!
     let priv_keys = vec![
         SecretKey::from_scalar(Scalar::from(1u64)),
         SecretKey::from_scalar(Scalar::from(2u64)),

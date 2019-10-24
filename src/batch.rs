@@ -1,13 +1,13 @@
-use std::borrow::Borrow;
-use std::iter;
+use crate::SchnorrError;
 use mohan::dalek::{
     constants::RISTRETTO_BASEPOINT_POINT,
     ristretto::RistrettoPoint,
     scalar::Scalar,
-    traits::{IsIdentity, VartimeMultiscalarMul}
+    traits::{IsIdentity, VartimeMultiscalarMul},
 };
 use rand::{CryptoRng, RngCore};
-use crate::SchnorrError;
+use std::borrow::Borrow;
+use std::iter;
 
 /// Trait for a batch verification of signatures.
 /// If you are only verifying signatures, without other proofs, you can use

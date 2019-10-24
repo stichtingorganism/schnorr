@@ -1,10 +1,7 @@
 //! Diffie-Hellman key exchange
 
+use crate::keys::{PublicKey, SecretKey};
 use mohan::tools::RistrettoBoth;
-use crate::keys::{
-    SecretKey, 
-    PublicKey
-};
 
 /// Alias type for a shared secret after ECDH
 pub type SharedSecret = RistrettoBoth;
@@ -13,7 +10,6 @@ pub type SharedSecret = RistrettoBoth;
 pub fn diffie_hellman(secret: &SecretKey, their_public: &PublicKey) -> SharedSecret {
     RistrettoBoth::from_point(secret.as_scalar() * their_public.as_point())
 }
-
 
 #[cfg(test)]
 mod test {

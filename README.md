@@ -16,6 +16,19 @@ A Multi Signature Protocol is also provided.
 
 (3) Little Endian Platforms ONLY
 
+# Bounty
+We are running a Bug Bounty for this library. Please submit a PR with issue + fix and the crypto address of the coin you want.
+We  will send
+
+- $200 For Major Bugs: Key Recovery, 
+- $100 Wrong function procedures that cause major issues
+- $10 for Minor bugs 
+
+Other amounts can be given based on issues. We want a solid library for the community. Audits are very expensive
+so we choose to create an open bounty problem to get help from the world and give back what we can right now.
+
+
+
 # Installation
 
 To install, add the following to your project's `Cargo.toml`:

@@ -17,47 +17,26 @@
 //! Schnorr signatures on the 2-tortsion free subgroup of ed25519,
 //! as provided by the Ristretto point compression.s
 
-
 mod public;
-pub use public::{
-    PUBLIC_KEY_LENGTH, 
-    PublicKey
-};
+pub use public::{PublicKey, PUBLIC_KEY_LENGTH};
 
 mod secret;
-pub use secret::{
-    SECRET_KEY_LENGTH, 
-    SecretKey
-};
+pub use secret::{SecretKey, SECRET_KEY_LENGTH};
 
 mod pair;
-pub use pair::{
-    KEYPAIR_LENGTH, 
-    Keypair
-};
+pub use pair::{Keypair, KEYPAIR_LENGTH};
 
 /// Musig Key
 mod multikey;
 pub use multikey::MultiKey;
 
-
 mod extended;
-pub use extended::{
-    XSecretKey,
-    XPublicKey
-};
-
-
-
+pub use extended::{XPublicKey, XSecretKey};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mohan::dalek::{
-        scalar::Scalar,
-        ristretto::RistrettoPoint,
-        traits::Identity
-    };
+    use mohan::dalek::{ristretto::RistrettoPoint, scalar::Scalar, traits::Identity};
 
     #[test]
     fn test_identity_keys() {
@@ -65,8 +44,7 @@ mod tests {
         let sk = SecretKey(Scalar::zero());
         //generate our pk
         let pk = PublicKey::from_secret(&sk);
-        
+
         assert_eq!(pk.into_point(), RistrettoPoint::identity());
     }
-
 }

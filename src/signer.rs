@@ -1,20 +1,13 @@
 //! Local Signer in MuSig
 
-use mohan::dalek::{
-    constants::RISTRETTO_BASEPOINT_POINT,
-    ristretto::RistrettoPoint,
-    scalar::Scalar
-};
 use bacteria::Transcript;
+use mohan::dalek::{
+    constants::RISTRETTO_BASEPOINT_POINT, ristretto::RistrettoPoint, scalar::Scalar,
+};
 use rand;
 
-use crate::{
-    Signature,
-    SchnorrError,
-    SecretKey,
-    MuSigContext
-};
 use super::counterparty::*;
+use crate::{MuSigContext, SchnorrError, SecretKey, Signature};
 
 /// Entry point to multi-party signing protocol.
 pub struct Signer {}
@@ -49,7 +42,6 @@ pub struct SignerAwaitingShares<C: MuSigContext> {
 }
 
 impl Signer {
-
     /// Create new signing party for a given transcript.
     pub fn new<'t, C: MuSigContext>(
         // The message `m` has already been fed into the transcript
@@ -58,7 +50,6 @@ impl Signer {
         x_i: Scalar,
         context: C,
     ) -> (SignerAwaitingPrecommitments<'t, C>, NoncePrecommitment) {
-
         let mut rng = transcript
             .build_rng()
             .rekey_with_witness_bytes(b"secret_key", &x_i.to_bytes())
@@ -96,7 +87,6 @@ impl<'t, C: MuSigContext> SignerAwaitingPrecommitments<'t, C> {
         self,
         nonce_precommitments: Vec<NoncePrecommitment>,
     ) -> (SignerAwaitingCommitments<'t, C>, NonceCommitment) {
-
         let counterparties = self
             .counterparties
             .into_iter()

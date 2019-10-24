@@ -12,32 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Schnorr Public Key generation, 
+//! Schnorr Public Key generation,
 
-
-use std::fmt::Debug;
-use mohan::{
-    tools::RistrettoBoth,
-    dalek::{
-        scalar::Scalar,
-        ristretto::{
-            RistrettoPoint, 
-            CompressedRistretto
-        },
-        constants
-    },
-    ser
-};
-use crate::SchnorrError;
 use crate::keys::SecretKey;
+use crate::SchnorrError;
+use mohan::{
+    dalek::{
+        constants,
+        ristretto::{CompressedRistretto, RistrettoPoint},
+        scalar::Scalar,
+    },
+    ser,
+    tools::RistrettoBoth,
+};
+use std::fmt::Debug;
 
 /// The length of an ed25519 Schnorr `PublicKey`, in bytes.
 pub const PUBLIC_KEY_LENGTH: usize = 32;
 
-
 /// An Schnorr public key.
 #[derive(Copy, Clone, Default)]
-pub struct PublicKey(pub (crate) RistrettoBoth);
+pub struct PublicKey(pub(crate) RistrettoBoth);
 
 impl Debug for PublicKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -52,29 +47,36 @@ impl ::zeroize::Zeroize for PublicKey {
 }
 
 impl PublicKey {
-
-    const DESCRIPTION : &'static str = "A Ristretto Schnorr public key represented as a 32-byte Ristretto compressed point";
+    const DESCRIPTION: &'static str =
+        "A Ristretto Schnorr public key represented as a 32-byte Ristretto compressed point";
 
     /// Access the compressed Ristretto form
-    pub fn as_compressed(&self) -> &CompressedRistretto { &self.0.as_compressed() }
+    pub fn as_compressed(&self) -> &CompressedRistretto {
+        &self.0.as_compressed()
+    }
 
     /// Extract the compressed Ristretto form
-    pub fn into_compressed(self) -> CompressedRistretto { self.0.into_compressed() }
+    pub fn into_compressed(self) -> CompressedRistretto {
+        self.0.into_compressed()
+    }
 
     /// Access the point form
-    pub fn as_point(&self) -> &RistrettoPoint { &self.0.as_point() }
+    pub fn as_point(&self) -> &RistrettoPoint {
+        &self.0.as_point()
+    }
 
     /// Extract the point form
-    pub fn into_point(self) -> RistrettoPoint { self.0.into_point() }
+    pub fn into_point(self) -> RistrettoPoint {
+        self.0.into_point()
+    }
 
     /// Decompress into the `PublicKey` format that also retains the
     /// compressed form.
     pub fn from_compressed(compressed: CompressedRistretto) -> Result<PublicKey, SchnorrError> {
         match RistrettoBoth::from_compressed(compressed) {
             None => Err(SchnorrError::PointDecompressionError),
-            Some(kosher) =>  Ok(PublicKey(kosher))
+            Some(kosher) => Ok(PublicKey(kosher)),
         }
-       
     }
 
     /// Compress into the `PublicKey` format that also retains the
@@ -133,7 +135,7 @@ impl PublicKey {
     pub fn from_bytes(bytes: &[u8]) -> Result<PublicKey, SchnorrError> {
         match RistrettoBoth::from_bytes(bytes) {
             Some(pk) => Ok(PublicKey(pk)),
-            None => Err(SchnorrError::SerError)
+            None => Err(SchnorrError::SerError),
         }
     }
 
@@ -142,14 +144,13 @@ impl PublicKey {
         Self::from_secret_uncompressed(secret_key.as_scalar())
     }
 
-    /// 
+    /// Helper Function to convert [Scalar] into PubKey
     pub(crate) fn from_secret_uncompressed(privkey: &Scalar) -> PublicKey {
-        PublicKey(RistrettoBoth::from_point(privkey * &constants::RISTRETTO_BASEPOINT_TABLE))
+        PublicKey(RistrettoBoth::from_point(
+            privkey * &constants::RISTRETTO_BASEPOINT_TABLE,
+        ))
     }
-
-
 }
-
 
 impl From<SecretKey> for PublicKey {
     fn from(source: SecretKey) -> PublicKey {
@@ -157,8 +158,7 @@ impl From<SecretKey> for PublicKey {
     }
 }
 
-
-//Ordering Support, needed to be specific for MuSig 
+//Ordering Support, needed to be specific for MuSig
 
 impl PartialEq for PublicKey {
     fn eq(&self, other: &PublicKey) -> bool {
@@ -182,16 +182,15 @@ impl Eq for PublicKey {}
 //     }
 // }
 
-
 impl ser::Writeable for PublicKey {
-	fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+    fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
         self.0.write(writer)?;
         Ok(())
-	}
+    }
 }
 
 impl ser::Readable for PublicKey {
-	fn read(reader: &mut dyn ser::Reader) -> Result<PublicKey, ser::Error> {
-		Ok(PublicKey(RistrettoBoth::read(reader)?))
-	}
+    fn read(reader: &mut dyn ser::Reader) -> Result<PublicKey, ser::Error> {
+        Ok(PublicKey(RistrettoBoth::read(reader)?))
+    }
 }

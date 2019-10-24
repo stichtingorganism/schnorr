@@ -21,10 +21,9 @@
 // - Isis Agora Lovecruft <isis@patternsinthevoid.net>
 // - Jeff Burdges <jeff@web3.foundation>
 // - The Tari Project Authors
-// - Cathie Yun <cathieyun@gmail.com> 
-// - Tess Rinearson <tess.rinearson@gmail.com> 
+// - Cathie Yun <cathieyun@gmail.com>
+// - Tess Rinearson <tess.rinearson@gmail.com>
 // - Oleg Andreev <oleganza@gmail.com>
-
 
 //Modeled from
 //https://github.com/dalek-cryptography/ed25519-dalek/blob/master/src/ed25519.rs
@@ -34,7 +33,6 @@
 //https://github.com/sipa/bips/blob/bip-schnorr/bip-schnorr.mediawiki
 //https://medium.com/cryptoadvance/how-schnorr-signatures-may-improve-bitcoin-91655bcb4744
 
-
 mod errors;
 pub use errors::SchnorrError;
 mod tools;
@@ -43,33 +41,21 @@ pub use tools::SigningContext;
 pub mod keys;
 pub mod signature;
 /// Export everything public in schnorr.
-pub use signature::{
-    Signature,
-    SIGNATURE_LENGTH,
-};
+pub use signature::{Signature, SIGNATURE_LENGTH};
 
 /// Key Swap
 mod ecdh;
-pub use crate::ecdh::{
-    diffie_hellman, 
-    SharedSecret
-};
+pub use crate::ecdh::{diffie_hellman, SharedSecret};
 
 /// A Multisignature over many different messages
 mod multimessage;
-pub use multimessage::{
-   Multimessage
-};
+pub use multimessage::Multimessage;
 mod multisignature;
 pub use multisignature::Multisignature;
 
 pub use crate::keys::*;
 mod batch;
-pub use batch::{
-    BatchVerification, 
-    BatchVerifier, 
-    SingleVerifier
-};
+pub use batch::{BatchVerification, BatchVerifier, SingleVerifier};
 
 mod context;
 pub use context::MuSigContext;
@@ -83,7 +69,9 @@ pub use signer::{
     Signer, SignerAwaitingCommitments, SignerAwaitingPrecommitments, SignerAwaitingShares,
 };
 
+// mod adaptor;
+
+mod feldman_vss;
 
 #[cfg(test)]
 mod musig_test;
-

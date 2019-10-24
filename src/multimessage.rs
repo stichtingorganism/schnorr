@@ -5,28 +5,16 @@
 //! inputs for efficient veriffication
 
 use crate::{
-    PublicKey,
-    SecretKey,
-    Signature,
-    MuSigContext,
-    errors::{self, SchnorrError, MuSigError}
+    errors::{self, MuSigError, SchnorrError},
+    MuSigContext, PublicKey, SecretKey, Signature,
 };
-use mohan::dalek::{
-    scalar::Scalar,
-    ristretto::{
-        RistrettoPoint,
-        CompressedRistretto
-    },
-    constants::{
-        RISTRETTO_BASEPOINT_POINT, 
-        RISTRETTO_BASEPOINT_TABLE
-    },
-    traits::{
-        VartimeMultiscalarMul,
-        IsIdentity
-    }
-}; 
 use bacteria::Transcript;
+use mohan::dalek::{
+    constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_TABLE},
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
+    traits::{IsIdentity, VartimeMultiscalarMul},
+};
 
 /// MuSig multimessage context
 #[derive(Clone)]
@@ -43,7 +31,6 @@ impl<M: AsRef<[u8]>> Multimessage<M> {
 
 impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
     fn commit(&self, transcript: &mut Transcript) {
-       
         transcript.append_message(b"dom-sep", b"schnorr-multi-signature v1");
         transcript.append_u64(b"n", self.pairs.len() as u64);
         for (key, msg) in &self.pairs {
@@ -69,22 +56,21 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
     }
 }
 
-
 // /// Creates a signature for multiple private keys and multiple messages
 // pub fn sign_multimessage(
-//     transcript: &mut Transcript, 
-//     keys: &[&SecretKey], 
+//     transcript: &mut Transcript,
+//     keys: &[&SecretKey],
 //     messages: &[(&PublicKey, &[u8])]
 // ) -> Result<Signature, SchnorrError> {
 
 //     if messages.len() != keys.len() {
 //             return Err(
 //                 errors::from_musig(
-//                     MuSigError::TooManyParticipants 
+//                     MuSigError::TooManyParticipants
 //                 )
 //             );
 //     }
-    
+
 //     if keys.len() == 0 {
 //         return Err(SchnorrError::BadArguments);
 //     }
@@ -100,13 +86,11 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 //         .rekey_with_witness_bytes(b"secret_key", keys[0].as_bytes())
 //         .finalize(&mut rand::thread_rng());
 
-    
 //     // Generate ephemeral keypair (r, R). r is a random nonce.
 //     let r: Scalar = Scalar::random(&mut rng);
 
 //     // R = generator * r, commiment to nonce
 //     let _r: CompressedRistretto = (&r * &RISTRETTO_BASEPOINT_TABLE).compress();
-
 
 //     // Commit the context, and commit the nonce sum with label "R"
 //     transcript.append_u64(b"Multimessage_len", messages.len() as u64);
@@ -118,7 +102,7 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 
 //     //commit to our nonce
 //     transcript.commit_point(b"R", &_r);
-    
+
 //     //compute the signature, s = r + sum{c_i * x_i}
 //     let mut s = r;
 //     for i in 0..keys.len() {
@@ -137,8 +121,8 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 // }
 
 // pub fn verify_multimessage(
-//     transcript: &mut Transcript, 
-//     signature: &Signature, 
+//     transcript: &mut Transcript,
+//     signature: &Signature,
 //     messages: &[(&PublicKey, &[u8])]
 // ) -> Result<(), SchnorrError> {
 
@@ -175,12 +159,11 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 //     weights.push(-signature.s);
 //     points.push(Some(RISTRETTO_BASEPOINT_POINT));
 
-
 //     for i in 0..messages.len() {
-        
+
 //         let c = {
 //             let mut t = transcript.clone(); //TODO is this clone cheap?
-          
+
 //             //This prevents later steps from being able to get the same challenges that come from the forked transcript.
 //             t.append_message(b"dom-sep", b"multi_message_boundary");
 //             //The index i is the index of pair of the key it matches to.
@@ -211,12 +194,11 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 //     Ok(())
 // }
 
-
 // #[test]
 // fn verify_multimessage_singleplayer() {
 //     use crate::Keypair;
 //     use rand::prelude::*;
-    
+
 //     let messages = vec![b"message1", b"message2", b"message3", b"message4"];
 //     let ctx = Transcript::new(b"my multi message context");
 //     let mut csprng: ThreadRng = thread_rng();
@@ -234,17 +216,15 @@ impl<M: AsRef<[u8]>> MuSigContext for Multimessage<M> {
 //         priv_keys.push(&keypairs[i].secret);
 //     }
 
-
 //     let signature = sign_multimessage(
 //         &mut ctx.to_owned(),
 //         priv_keys.as_slice(),
 //         pairs.as_slice(),
 //     ).unwrap();
 
-
 //     assert!(verify_multimessage(
 //         &mut ctx.to_owned(),
-//         &signature, 
+//         &signature,
 //         pairs.as_slice()
 //     ).is_ok());
 // }
