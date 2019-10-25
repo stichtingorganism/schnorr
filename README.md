@@ -6,7 +6,6 @@ Furthermore key derivation functionality is supported.
 This library aims to be a backbone for many different use cases but we focus on the Public Network needs.
 
 Todo:
-    - Threshold Signatures
     - Serde Support
     - Adaptor Signatures
 
