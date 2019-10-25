@@ -55,9 +55,16 @@ pub struct SharedKeys {
     pub x_i: Scalar
 }
 
+//
+// 4.1 Key generation protocol
+// 
 
 impl Keys {
-    
+
+    /// Phase 1
+    /// Each player selects a random Scalar and computes its
+    /// assoicated "Public Point" basically raised to the group basepoint  
+    /// This is a keypair
     pub fn phase1_create(index: usize) -> Keys {
         let u: Scalar = Scalar::random(&mut mohan_rand());
         let y = RISTRETTO_BASEPOINT_POINT * u;
@@ -69,6 +76,10 @@ impl Keys {
         }
     }
 
+    /// Phase 1.1
+    /// Each Player samples a random nonce Scalar to produce
+    /// a commitment to the PublicPoint and shares this hash based
+    /// commitement with the other players.
     pub fn phase1_broadcast(&self) -> (KeyGenBroadcastMessage1, Scalar) {
         let blind_factor = Scalar::random(&mut mohan_rand());
         let mut buf = Vec::new();
@@ -280,7 +291,6 @@ impl Signature {
     }
 
     pub fn verify(&self, message: &[u8], pubkey_y: &RistrettoPoint) -> Result<(), SchnorrError> {
-
         let mut buf = Vec::new();
         buf.extend_from_slice(self.v.compress().as_bytes());
         buf.extend_from_slice(pubkey_y.compress().as_bytes());

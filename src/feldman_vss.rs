@@ -1,7 +1,17 @@
 #![allow(non_snake_case)]
-/// Copyright 2018 by Kzen Networks
+// Copyright 2018 by Kzen Networks
 // (https://github.com/KZen-networks/curv)
-/// License MIT: <https://github.com/KZen-networks/curv/blob/master/LICENSE>
+// License MIT: <https://github.com/KZen-networks/curv/blob/master/LICENSE>
+
+//! Fast Multiparty Threshold ECDSA with Fast Trustless Setup
+//! In a verifiable secret sharing scheme, auxiliary information is published that allows players 
+//! to check that their shares are consistent and define a unique secret. Feldman’s VSS is an extension 
+//! of Shamir secret sharing in which the dealer also publishes vi=gai inGforalli∈[1,t]andv0=gσ inG.
+//! If the check does not hold for any player, it raises a complaint and the protocol terminates.
+//! Note that this is different than the way Feldman VSS was originally presented as it assumed 
+//! an honest majority and could recover if a dishonest player raised a complaint. However,
+//! since we assume dishonest majority in this paper, the protocol will abort if a complaint is raised.
+
 
 use mohan::dalek::{
     constants::RISTRETTO_BASEPOINT_POINT,
