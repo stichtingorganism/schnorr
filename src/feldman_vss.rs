@@ -59,7 +59,7 @@ impl VerifiableSS {
         )
     }
 
-    // generate VerifiableSS from a secret and user defined x values (in case user wants to distribute point f(1), f(4), f(6) and not f(1),f(2),f(3))
+    /// generate VerifiableSS from a secret and user defined x values (in case user wants to distribute point f(1), f(4), f(6) and not f(1),f(2),f(3))
     pub fn share_at_indices(
         t: usize,
         n: usize,

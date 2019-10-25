@@ -1,5 +1,6 @@
 //! Local Signer in MuSig
 
+
 use bacteria::Transcript;
 use mohan::dalek::{
     constants::RISTRETTO_BASEPOINT_POINT, ristretto::RistrettoPoint, scalar::Scalar,
@@ -13,6 +14,7 @@ use crate::{MuSigContext, SchnorrError, SecretKey, Signature};
 pub struct Signer {}
 
 /// State of the party when awaiting nonce precommitments from other parties.
+#[allow(non_snake_case)]
 pub struct SignerAwaitingPrecommitments<'t, C: MuSigContext> {
     transcript: &'t mut Transcript,
     context: C,

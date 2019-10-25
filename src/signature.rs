@@ -14,10 +14,13 @@
 
 //! A Rust implementation of Schnorr signing
 
-use mohan::dalek::{
-    constants::{RISTRETTO_BASEPOINT_TABLE},
-    ristretto::{CompressedRistretto},
-    scalar::Scalar
+use mohan::{
+    ser,
+    dalek::{
+        constants::{RISTRETTO_BASEPOINT_TABLE},
+        ristretto::{CompressedRistretto},
+        scalar::Scalar,
+    }
 };
 use std::fmt::Debug;
 
@@ -323,6 +326,24 @@ impl Signature {
         );
     }
 }
+
+impl ser::Writeable for Signature {
+    fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
+        self.R.write(writer)?;
+        self.s.write(writer)?;
+        Ok(())
+    }
+}
+
+impl ser::Readable for Signature {
+    fn read(reader: &mut dyn ser::Reader) -> Result<Signature, ser::Error> {
+        Ok(Signature {
+            R: CompressedRistretto::read(reader)?,
+            s: Scalar::read(reader)?,
+        })
+    }
+}
+
 
 #[cfg(test)]
 mod test {

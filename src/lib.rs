@@ -71,7 +71,11 @@ pub use signer::{
 
 // mod adaptor;
 
-mod feldman_vss;
+pub mod feldman_vss;
+
+pub mod threshold;
+#[cfg(test)]
+mod threshold_test;
 
 #[cfg(test)]
 mod musig_test;

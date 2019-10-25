@@ -9,6 +9,11 @@
 //     traits::{IsIdentity, VartimeMultiscalarMul},
 // };
 
+
+/// Lets say t is a payment secret (preimage)
+/// and tG = T. G is the group generator.
+/// Alice and Bob will participate
+
 // /// https://joinmarket.me/blog/blog/flipping-the-scriptless-script-on-schnorr/
 // ///
 // /// Alice (P = xG), constructs for Bob:
