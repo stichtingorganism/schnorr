@@ -28,7 +28,10 @@ use mohan::{
 };
 use crate::{
     threshold::*,
-    feldman_vss::VerifiableSS
+    feldman_vss::{
+        VerifiableSS,
+        ShamirSecretSharing
+    },
 };
 
 
@@ -126,7 +129,7 @@ pub fn keygen_t_n_parties(
     parties: &[usize],
 ) -> (Vec<Keys>, Vec<SharedKeys>, RistrettoPoint, Vec<VerifiableSS>) {
 
-    let parames = ThresholdParameters {
+    let parames = ShamirSecretSharing {
         threshold: t,
         share_count: n.clone(),
     };

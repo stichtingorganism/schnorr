@@ -27,12 +27,15 @@ use mohan::{
     }
 };
 use crate::{
-    feldman_vss::VerifiableSS,
+    feldman_vss::{
+        VerifiableSS,
+        ShamirSecretSharing
+    },
     SchnorrError
 };
 use serde::{ Serialize,Deserialize};
 
-const SECURITY: usize = 256;
+
 
 pub struct Keys {
     pub u_i: Scalar,
@@ -43,12 +46,6 @@ pub struct Keys {
 
 pub struct KeyGenBroadcastMessage1 {
     commitment: H256,
-}
-
-#[derive(Debug)]
-pub struct ThresholdParameters {
-    pub threshold: usize,   //t
-    pub share_count: usize, //n
 }
 
 
@@ -85,7 +82,7 @@ impl Keys {
 
     pub fn phase1_verify_com_phase2_distribute(
         &self,
-        params: &ThresholdParameters,
+        params: &ShamirSecretSharing,
         blind_vec: &Vec<Scalar>,
         y_vec: &Vec<RistrettoPoint>,
         bc1_vec: &Vec<KeyGenBroadcastMessage1>,
@@ -121,7 +118,7 @@ impl Keys {
 
     pub fn phase2_verify_vss_construct_keypair(
         &self,
-        params: &ThresholdParameters,
+        params: &ShamirSecretSharing,
         y_vec: &Vec<RistrettoPoint>,
         secret_shares_vec: &Vec<Scalar>,
         vss_scheme_vec: &Vec<VerifiableSS>,
