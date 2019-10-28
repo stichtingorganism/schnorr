@@ -169,17 +169,17 @@ impl PartialEq for PublicKey {
 
 impl Eq for PublicKey {}
 
-// impl PartialOrd for PublicKey {
-//     fn partial_cmp(&self, other: &PublicKey) -> Option<std::cmp::Ordering> {
-//         self.as_point.partial_cmp(&other.as_point())
-//     }
-// }
+impl PartialOrd for PublicKey {
+    fn partial_cmp(&self, other: &PublicKey) -> Option<std::cmp::Ordering> {
+        self.partial_cmp(&other)
+    }
+}
 
-// impl Ord for PublicKey {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.as_point().cmp(&other.as_point())
-//     }
-// }
+impl Ord for PublicKey {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.cmp(&other)
+    }
+}
 
 impl ser::Writeable for PublicKey {
     fn write<W: ser::Writer>(&self, writer: &mut W) -> Result<(), ser::Error> {
