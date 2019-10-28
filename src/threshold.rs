@@ -17,13 +17,9 @@ use mohan::{
         H256
     },
     dalek::{
-        constants::{RISTRETTO_BASEPOINT_POINT, RISTRETTO_BASEPOINT_TABLE},
-        ristretto::{CompressedRistretto, RistrettoPoint},
+        constants::RISTRETTO_BASEPOINT_POINT,
+        ristretto::RistrettoPoint,
         scalar::Scalar,
-        traits::{
-            IsIdentity, 
-            VartimeMultiscalarMul
-        },
     }
 };
 use crate::{

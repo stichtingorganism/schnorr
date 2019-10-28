@@ -88,6 +88,40 @@ impl Default for Signature {
 }
 
 impl Signature {
+
+    /// Convert this `Signature` to a byte array.
+    #[inline]
+    pub fn to_bytes(&self) -> [u8; SIGNATURE_LENGTH] {
+        let mut signature_bytes: [u8; SIGNATURE_LENGTH] = [0u8; SIGNATURE_LENGTH];
+
+        signature_bytes[..32].copy_from_slice(&self.R.as_bytes()[..]);
+        signature_bytes[32..].copy_from_slice(&self.s.as_bytes()[..]);
+        signature_bytes
+    }
+
+    /// Construct a `Signature` from a slice of bytes.
+    #[inline]
+    pub fn from_bytes(bytes: &[u8]) -> Result<Signature, SchnorrError> {
+        if bytes.len() != SIGNATURE_LENGTH {
+            return Err(SchnorrError::SerError);
+        }
+        let mut lower: [u8; 32] = [0u8; 32];
+        let mut upper: [u8; 32] = [0u8; 32];
+
+        lower.copy_from_slice(&bytes[..32]);
+        upper.copy_from_slice(&bytes[32..]);
+
+        if upper[31] & 224 != 0 {
+            return Err(SchnorrError::ScalarFormatError);
+        }
+
+        Ok(Signature{ R: CompressedRistretto(lower), s: Scalar::from_bits(upper) })
+
+        //let s = Scalar::from_canonical_bytes(upper).ok_or(SignatureError::ScalarFormatError) ?;
+        //Ok(Signature{ R: CompressedRistretto(lower), s: s })
+ 
+    }
+
     /// Sign a transcript with this keypair's secret key.
     ///
     /// Requires a `SigningTranscript`, normally created from a

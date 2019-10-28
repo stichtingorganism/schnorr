@@ -8,7 +8,7 @@ use mohan::dalek::{
 use rand;
 
 use super::counterparty::*;
-use crate::{MuSigContext, SchnorrError, SecretKey, Signature};
+use crate::{MuSigContext, SchnorrError, Signature};
 
 /// Entry point to multi-party signing protocol.
 pub struct Signer {}

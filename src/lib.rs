@@ -83,7 +83,6 @@ mod musig_test;
 
 
 
-#[cfg(feature = "serde")]
 macro_rules! serde_boilerplate { ($t:ty) => {
     impl ::serde::Serialize for $t {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: ::serde::Serializer {
@@ -99,7 +98,7 @@ macro_rules! serde_boilerplate { ($t:ty) => {
                 type Value = $t;
 
                 fn expecting(&self, formatter: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-                    formatter.write_str(Self::Value::DESCRIPTION)
+                    formatter.write_str("SERDE ERROR")
                 }
 
                 fn visit_bytes<E>(self, bytes: &[u8]) -> Result<$t, E> where E: ::serde::de::Error {
@@ -111,4 +110,5 @@ macro_rules! serde_boilerplate { ($t:ty) => {
     }
 } } // macro_rules! serde_boilerplate
 
-//TODO SERDE FOR TYPES #[cfg(feature = "serde")] serde_boilerplate!(Signature);
+serde_boilerplate!(Signature);
+serde_boilerplate!(PublicKey);

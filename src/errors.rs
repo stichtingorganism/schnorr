@@ -90,7 +90,23 @@ pub fn from_musig(err: MuSigError) -> SchnorrError {
     SchnorrError::MuSig { kind: err }
 }
 
-
+/// Convert `SchnorrError` into `::serde::de::Error` aka `SerdeError`
+///
+/// We should do this with `From` but right now the orphan rules prohibit
+/// `impl From<SchnorrError> for E where E: ::serde::de::Error`.
+pub(crate) fn serde_error_from_signature_error<E>(err: SchnorrError) -> E
+where E: ::serde::de::Error
+{
+    match err {
+        SchnorrError::PointDecompressionError
+            => E::custom("Ristretto point decompression failed"),
+        SchnorrError::ScalarFormatError
+            => E::custom("improper scalar has high-bit set"), 
+        SchnorrError::SerError
+            =>  E::custom("improper serde usage"), 
+        _ => panic!("Non-serialisation error encountered by serde!"),
+    }
+}
 
 // #[derive(Eq, PartialEq, Debug, Fail, Clone)]
 // pub enum MuSigError {

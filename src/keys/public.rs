@@ -34,6 +34,7 @@ pub const PUBLIC_KEY_LENGTH: usize = 32;
 #[derive(Copy, Clone, Default)]
 pub struct PublicKey(pub(crate) RistrettoBoth);
 
+
 impl Debug for PublicKey {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "PublicKey( CompressedRistretto( {:?} ))", self.0)
