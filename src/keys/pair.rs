@@ -24,8 +24,7 @@ use zeroize::Zeroize;
 pub const KEYPAIR_LENGTH: usize = SECRET_KEY_LENGTH + PUBLIC_KEY_LENGTH;
 
 /// An Schnorr keypair.
-#[derive(Debug, Default)] // we derive Default in order to use the clear() method in Drop
-#[repr(C)]
+#[derive(Debug, Default, Clone)] // we derive Default in order to use the clear() method in Drop
 pub struct Keypair {
     /// The secret half of this keypair.
     pub secret: SecretKey,

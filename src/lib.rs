@@ -112,3 +112,5 @@ macro_rules! serde_boilerplate { ($t:ty) => {
 
 serde_boilerplate!(Signature);
 serde_boilerplate!(PublicKey);
+serde_boilerplate!(SecretKey);
+serde_boilerplate!(Keypair);
