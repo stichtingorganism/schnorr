@@ -1,6 +1,6 @@
 [package]
 name = "schnorr"
-version = "0.0.17"
+version = "0.0.18"
 description = "Schnorr Signatures"
 authors = ["hello@organism.org"]
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ edition = "2018"
 [dependencies]
 serde = "^1.0"
 rand = "0.7.*"
-failure = "0.1"
+thiserror = "1.0"
 subtle = { version = "2.0.0", features = ["nightly"] }
 bacteria = "0.0.8"
 mohan = { version = "0.0.*", features = ["rand"] }

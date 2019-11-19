@@ -14,73 +14,73 @@
 
 //! Errors which may occur when parsing keys and/or signatures to or from wire formats.
 
-use failure::Fail;
+use thiserror::Error;
 
 /// Represents an error in key aggregation, signing, or verification.
-#[derive(Fail, Clone, Debug, Eq, PartialEq)]
+#[derive(Error, Clone, Debug, Eq, PartialEq)]
 pub enum MuSigError {
     /// This error occurs when a point is not a valid compressed Ristretto point
-    #[fail(display = "Point decoding failed")]
+    #[error("Point decoding failed")]
     InvalidPoint,
 
     /// This error occurs when a signature share fails to verify
-    #[fail(display = "Share #{:?} failed to verify correctly", pubkey)]
+    #[error("Share {pubkey:?} failed to verify correctly")]
     ShareError {
         /// The pubkey corresponding to the share that failed fo verify correctly
         pubkey: [u8; 32],
     },
 
     /// This error occurs when an individual point operation failed.
-    #[fail(display = "Point operation failed")]
+    #[error("Point operation failed")]
     PointOperationFailed,
 
     /// This error occurs when a function is called with bad arguments.
-    #[fail(display = "Bad arguments")]
+    #[error("Bad arguments")]
     BadArguments,
 
     /// There are too many parties in the MuSig signature
-    #[fail(display = "There are too many parties in the MuSig signature")]
+    #[error("There are too many parties in the MuSig signature")]
     TooManyParticipants,
 }
 
 /// Internal errors.  Most application-level developers will likely not
 /// need to pay any attention to these.
-#[derive(Eq, PartialEq, Debug, Fail, Clone)]
+#[derive(Eq, PartialEq, Debug, Error, Clone)]
 pub enum SchnorrError {
     /// Invalid point provided.
-    #[fail(display = "Cannot decompress Edwards point")]
+    #[error("Cannot decompress Edwards point")]
     PointDecompressionError,
 
     /// Invalid scalar provided.
-    #[fail(display = "Cannot use scalar with high-bit set")]
+    #[error("Cannot use scalar with high-bit set")]
     ScalarFormatError,
 
     /// Invalid ser provided.
-    #[fail(display = "Issue When Serilizing Data")]
+    #[error("Issue When Serilizing Data")]
     SerError,
 
     /// The verification equation wasn't satisfied
-    #[fail(display = "Verification equation was not satisfied")]
+    #[error("Verification equation was not satisfied")]
     VerifyError,
 
     /// This error occurs when a function is called with bad arguments.
-    #[fail(display = "Function is called with bad arguments")]
+    #[error("Function is called with bad arguments")]
     BadArguments,
 
     /// Musig  
-    #[fail(display = "Absent {} violated multi-signature protocol", _0)]
+    #[error("Absent {kind:?} violated multi-signature protocol")]
     MuSig { kind: MuSigError },
 
     /// This error occurs when a point is not a valid compressed Ristretto point
-    #[fail(display = "Signature verification failed")]
+    #[error("Signature verification failed")]
     InvalidSignature,
 
     /// This error occurs when a set of signatures failed to verify as a batch
-    #[fail(display = "Batch signature verification failed")]
+    #[error("Batch signature verification failed")]
     InvalidBatch,
 
     /// VSS Error 
-    #[fail(display = "VSS share error")]
+    #[error("VSS share error")]
     VerifyShareError
 }
 
@@ -107,52 +107,3 @@ where E: ::serde::de::Error
         _ => panic!("Non-serialisation error encountered by serde!"),
     }
 }
-
-// #[derive(Eq, PartialEq, Debug, Fail, Clone)]
-// pub enum MuSigError {
-//     /// The number of public nonces must match the number of public keys in the joint key
-//     #[fail(display = "The number of public nonces must match the number of public keys in the joint key")]
-//     MismatchedNonces,
-//     /// The number of partial signatures must match the number of public keys in the joint key
-//     #[fail(display = "The number of partial signatures must match the number of public keys in the joint key")]
-//     MismatchedSignatures,
-//     /// The aggregate signature did not verify
-//     #[fail(display = "The aggregate signature did not verify")]
-//     InvalidAggregateSignature,
-//     /// A partial signature did not validate
-//     #[fail(display = "A partial signature did not validate at index: {}", _0)]
-//     InvalidPartialSignature(usize),
-//     /// The participant list must be sorted before making this call
-//     #[fail(display = "The participant list must be sorted before making this call")]
-//     NotSorted,
-//     /// The participant key is not in the list
-//     #[fail(display = "The participant key is not in the list")]
-//     ParticipantNotFound,
-//     /// An attempt was made to perform an invalid MuSig state transition
-//     #[fail(display = "An attempt was made to perform an invalid MuSig state transition")]
-//     InvalidStateTransition,
-//     /// An attempt was made to add a duplicate public key to a MuSig signature
-//     #[fail(display = "An attempt was made to add a duplicate public key to a MuSig signature")]
-//     DuplicatePubKey,
-//     /// There are too many parties in the MuSig signature
-//     #[fail(display = "There are too many parties in the MuSig signature")]
-//     TooManyParticipants,
-//     /// There are too few parties in the MuSig signature
-//     #[fail(display = "There are too few parties in the MuSig signature")]
-//     NotEnoughParticipants,
-//     /// A nonce hash is missing
-//     #[fail(display = "A nonce hash is missing")]
-//     MissingNonce,
-//     /// The message to be signed can only be set once
-//     #[fail(display = "The message to be signed can only be set once")]
-//     MessageAlreadySet,
-//     /// The message to be signed MUST be set before the final nonce is added to the MuSig ceremony
-//     #[fail(display = "The message to be signed MUST be set before the final nonce is added to the MuSig ceremony")]
-//     MissingMessage,
-//     /// The message to sign is invalid. have you hashed it?
-//     #[fail(display = "The message to sign is invalid. have you hashed it?")]
-//     InvalidMessage,
-//     /// MuSig requires a hash function with a 32 byte digest
-//     #[fail(display = "MuSig requires a hash function with a 32 byte digest")]
-//     IncompatibleHashFunction,
-// }
