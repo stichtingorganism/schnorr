@@ -8,6 +8,11 @@ use mohan::dalek::{
 use rand::{CryptoRng, RngCore};
 use std::borrow::Borrow;
 use std::iter;
+use bacteria::{
+    Transcript,
+    TranscriptRng
+};
+
 
 /// Trait for a batch verification of signatures.
 /// If you are only verifying signatures, without other proofs, you can use
@@ -66,25 +71,25 @@ impl BatchVerification for SingleVerifier {
 }
 
 /// Batch signature verifier for use with `Signature::verify_batched`.
-pub struct BatchVerifier<R: RngCore + CryptoRng> {
-    rng: R,
+pub struct BatchVerifier {
+    rng: TranscriptRng,
     basepoint_scalar: Scalar,
     dyn_weights: Vec<Scalar>,
     dyn_points: Vec<Option<RistrettoPoint>>,
 }
 
 
-impl<R: RngCore + CryptoRng> BatchVerifier<R> {
+impl BatchVerifier {
     /// Returns a new instance for batch verification
-    pub fn new(rng: R) -> Self {
+    pub fn new<R: RngCore + CryptoRng>(rng: &mut R) -> Self {
         Self::with_capacity(rng, 0)
     }
 
     /// Returns a new instance for batch verification with pre-allocated capacity `n`
     /// for verifying `n` simple schnorr signatures.
-    pub fn with_capacity(rng: R, capacity: usize) -> Self {
+    pub fn with_capacity<R: RngCore + CryptoRng>(mut rng: &mut R, capacity: usize) -> Self {
         Self {
-            rng,
+            rng: Transcript::new(b"BatchVerifier").build_rng().finalize(&mut rng),
             basepoint_scalar: Scalar::zero(),
             dyn_weights: Vec::with_capacity(capacity * 2),
             dyn_points: Vec::with_capacity(capacity * 2),
@@ -108,7 +113,7 @@ impl<R: RngCore + CryptoRng> BatchVerifier<R> {
     }
 }
 
-impl<R: RngCore + CryptoRng> BatchVerification for BatchVerifier<R> {
+impl BatchVerification for BatchVerifier {
     fn append<I, J>(&mut self, basepoint_scalar: I::Item, dynamic_scalars: I, dynamic_points: J)
     where
         I: IntoIterator,

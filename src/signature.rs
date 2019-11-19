@@ -320,9 +320,9 @@ impl Signature {
     /// let msg: &[u8] = b"They're good dogs Brant";
     /// let signatures:  Vec<Signature> = keypairs.iter().map(|key| Signature::sign(&mut ctx.bytes(&msg), &key.secret)).collect();
     /// let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
-    /// let mut batch = BatchVerifier::new(rand::thread_rng());
+    /// let mut batch = BatchVerifier::new(&mut rand::thread_rng());
     ///
-    /// let mut transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(64).collect();;
+    /// let mut transcripts: Vec<Transcript> = ::std::iter::once(ctx.bytes(msg)).cycle().take(64).collect();
     /// for i in 0..signatures.len() {
     ///      signatures[i].verify_batched(&mut transcripts[i], &public_keys[i], &mut batch);
     /// }
@@ -544,7 +544,7 @@ mod test {
         let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
         let mut transcripts: Vec<Transcript> = messages.iter().map(|m| ctx.bytes(m)).collect();
 
-        let mut batch = BatchVerifier::new(rand::thread_rng());
+        let mut batch = BatchVerifier::new(&mut rand::thread_rng());
 
         for i in 0..signatures.len() {
             signatures[i].verify_batched(&mut transcripts[i], &public_keys[i], &mut batch);
@@ -582,7 +582,7 @@ mod test {
         let public_keys: Vec<PublicKey> = keypairs.iter().map(|key| key.public).collect();
         let mut transcripts: Vec<Transcript> = messages.iter().map(|m| ctx.bytes(m)).collect();
 
-        let mut batch = BatchVerifier::new(rand::thread_rng());
+        let mut batch = BatchVerifier::new(&mut rand::thread_rng());
 
         for i in 0..signatures.len() {
             signatures[i].verify_batched(

@@ -75,7 +75,7 @@ mod schnorr_benches {
                         .collect();
 
                 b.iter(|| {
-                    let mut batch = BatchVerifier::new(mohan::mohan_rand());
+                    let mut batch = BatchVerifier::new(&mut mohan::mohan_rand());
                     for i in 0..signatures.len() {
                         signatures[i].verify_batched(&mut transcripts[i], &public_keys[i], &mut batch);
                     }
