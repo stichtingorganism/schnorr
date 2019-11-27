@@ -85,6 +85,8 @@ pub enum SchnorrError {
 }
 
 
+
+
 /// Helper function to foncert a musig error into schnorr error
 pub fn from_musig(err: MuSigError) -> SchnorrError {
     SchnorrError::MuSig { kind: err }

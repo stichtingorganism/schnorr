@@ -23,14 +23,14 @@ use mohan::{
     }
 };
 use crate::{
+    Signature,
     feldman_vss::{
         VerifiableSS,
         ShamirSecretSharing
     },
     SchnorrError
 };
-use serde::{ Serialize,Deserialize};
-
+use serde::{ Serialize, Deserialize};
 
 
 pub struct Keys {
@@ -38,7 +38,6 @@ pub struct Keys {
     pub y_i: RistrettoPoint,
     pub party_index: usize,
 }
-
 
 pub struct KeyGenBroadcastMessage1 {
     commitment: H256,
@@ -258,19 +257,13 @@ impl LocalSig {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Signature {
-    pub sigma: Scalar,
-    pub v: RistrettoPoint,
-}
-
 impl Signature {
 
-    pub fn generate(
+    pub fn sign_threshold(
         vss_sum_local_sigs: &VerifiableSS,
         local_sig_vec: &Vec<LocalSig>,
         parties_index_vec: &[usize],
-        v: RistrettoPoint,
+        R: RistrettoPoint,
     ) -> Signature {
 
         let gamma_vec = (0..parties_index_vec.len())
@@ -279,29 +272,33 @@ impl Signature {
 
         let reconstruct_limit = vss_sum_local_sigs.parameters.threshold.clone() + 1;
 
-        let sigma = vss_sum_local_sigs.reconstruct(
+        let s = vss_sum_local_sigs.reconstruct(
             &parties_index_vec[0..reconstruct_limit.clone()],
             &gamma_vec[0..reconstruct_limit.clone()],
         );
-        Signature { sigma, v }
+        Signature { s, R: R.compress() }
     }
 
-    pub fn verify(&self, message: &[u8], pubkey_y: &RistrettoPoint) -> Result<(), SchnorrError> {
+    pub fn verify_threshold(&self, message: &[u8], pubkey_y: &RistrettoPoint) -> Result<(), SchnorrError> {
         let mut buf = Vec::new();
-        buf.extend_from_slice(self.v.compress().as_bytes());
+        buf.extend_from_slice(self.R.as_bytes());
         buf.extend_from_slice(pubkey_y.compress().as_bytes());
         buf.extend_from_slice(message);
         let e = blake256(&buf).into_scalar();
 
         let g = RISTRETTO_BASEPOINT_POINT;
-        let sigma_g = g * &self.sigma;
+        let sigma_g = g * &self.s;
         let e_y = pubkey_y * &e;
-        let e_y_plus_v = e_y + &self.v;
-
-        if e_y_plus_v == sigma_g {
-            Ok(())
-        } else {
-            Err(SchnorrError::VerifyShareError)
+        match self.R.decompress() {
+            None => return Err(SchnorrError::InvalidSignature),
+            Some(big_r) => {
+                let e_y_plus_v = e_y + big_r;
+                if e_y_plus_v == sigma_g {
+                    return Ok(());
+                } else {
+                    return Err(SchnorrError::VerifyShareError);
+                }
+            }
         }
     }
 }

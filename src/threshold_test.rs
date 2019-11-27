@@ -27,6 +27,7 @@ use mohan::{
     }
 };
 use crate::{
+    Signature,
     threshold::*,
     feldman_vss::{
         VerifiableSS,
@@ -68,8 +69,8 @@ fn test_t2_n4() {
 
     assert!(verify_local_sig.is_ok());
     let vss_sum_local_sigs = verify_local_sig.unwrap();
-    let signature = Signature::generate(&vss_sum_local_sigs, &local_sig_vec, &parties_index_vec, V);
-    let verify_sig = signature.verify(&message, &Y);
+    let signature = Signature::sign_threshold(&vss_sum_local_sigs, &local_sig_vec, &parties_index_vec, V);
+    let verify_sig = signature.verify_threshold(&message, &Y);
     assert!(verify_sig.is_ok());
 }
 
@@ -118,8 +119,8 @@ fn test_t2_n5_sign_with_4() {
     let vss_sum_local_sigs = verify_local_sig.unwrap();
 
     /// each party / dealer can generate the signature
-    let signature = Signature::generate(&vss_sum_local_sigs, &local_sig_vec, &parties_index_vec, V);
-    let verify_sig = signature.verify(&message, &Y);
+    let signature = Signature::sign_threshold(&vss_sum_local_sigs, &local_sig_vec, &parties_index_vec, V);
+    let verify_sig = signature.verify_threshold(&message, &Y);
     assert!(verify_sig.is_ok());
 }
 
