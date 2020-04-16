@@ -1,6 +1,6 @@
 [package]
 name = "schnorr"
-version = "0.0.19"
+version = "0.0.20"
 description = "Schnorr Signatures"
 authors = ["hello@organism.org"]
 license = "Apache-2.0"
@@ -14,17 +14,17 @@ edition = "2018"
 serde = "^1.0"
 rand = "0.7.*"
 thiserror = "1.0"
-subtle = { version = "2.0.0", features = ["nightly"] }
+subtle = { version = "2.2", features = ["nightly"] }
 bacteria = "0.0.8"
-mohan = { version = "0.0.*", features = ["rand"] }
-zeroize = { version = "1.0.0", features = ["zeroize_derive"] }
+mohan = { version = "0.0.*", features = [] }
+zeroize = { version = "1.1.0", features = ["zeroize_derive"] }
 
 [dev-dependencies]
-criterion = "0.2"
-bincode = "^0.9"
-hex = "^0.3"
+criterion = "0.3"
+bincode = "1"
+hex = "0.4"
 blake2 = "0.8"
-rand_chacha = "0.2.1"
+rand_chacha = "0.2"
 
 [[bench]]
 name = "schnorr_benchmarks"
